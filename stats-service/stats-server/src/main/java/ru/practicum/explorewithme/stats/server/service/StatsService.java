@@ -12,7 +12,7 @@ public interface StatsService {
      * Сохраняет информацию о запросе к эндпоинту.
      *
      * @param endpointHitDto DTO с информацией о запросе.
-     **/
+     */
     void saveHit(EndpointHitDto endpointHitDto);
 
     /**
@@ -23,7 +23,7 @@ public interface StatsService {
      * @param uris   список URI, для которых нужна статистика (может быть null или пустым для всех URI).
      * @param unique true, если нужны только уникальные по IP посещения, false иначе.
      * @return список DTO {@link ViewStatsDto} со статистикой.
-     **/
+     */
     List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end, List<String> uris, boolean unique);
 
 }
