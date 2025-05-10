@@ -26,11 +26,12 @@ public class StatsServiceImpl implements StatsService {
     @Transactional
     public void saveHit(EndpointHitDto endpointHitDto) {
         log.debug("Service: Attempting to save hit: {}", endpointHitDto);
-        EndpointHit endpointHit = endpointHitMapper.toEndpointHit(endpointHitDto);
-        if (endpointHit == null) {
-            log.warn("Service: Cannot save null EndpointHit, DTO was null: {}", endpointHitDto);
-            throw new IllegalArgumentException("Failed to map EndpointHitDto to EndpointHit: DTO was null");
+        if (endpointHitDto == null) {
+            log.warn("Service: Cannot save hit, input EndpointHitDto was null.");
+            throw new IllegalArgumentException("Input EndpointHitDto cannot be null.");
         }
+        EndpointHit endpointHit = endpointHitMapper.toEndpointHit(endpointHitDto);
+        statsRepository.save(endpointHit);
         log.info("Service: Hit saved successfully for app: {}, uri: {}", endpointHit.getApp(), endpointHit.getUri());
     }
 
