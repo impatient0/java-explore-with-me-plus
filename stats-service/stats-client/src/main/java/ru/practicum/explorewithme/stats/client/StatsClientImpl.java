@@ -57,13 +57,16 @@ public class StatsClientImpl implements StatsClient {
                     .uri(uriBuilder -> {
                         uriBuilder.path("/stats") // Правильный путь
                                 .queryParam("start", start)
-                                .queryParam("end", end)
-                                .queryParam("unique", unique);
+                                .queryParam("end", end);
 
                         if (uris != null && !uris.isEmpty()) {
                             for (String uri : uris) {
                                 uriBuilder.queryParam("uris", uri);
                             }
+                        }
+
+                        if (unique != null) {
+                            uriBuilder.queryParam("unique", unique);
                         }
 
                         return uriBuilder.build();
@@ -79,8 +82,9 @@ public class StatsClientImpl implements StatsClient {
                     )
                     .body(new ParameterizedTypeReference<>() {});
         } catch (RestClientException e) {
-            log.error("Ошибка при получении статистики: {}", e.getMessage());
-            throw e; // Перебрасываем исключение дальше
+            String errorMsg = "Ошибка при получении статистики: "+ e.getMessage();
+            log.error(errorMsg);
+            throw new RestClientException(errorMsg);
         }
     }
 }
