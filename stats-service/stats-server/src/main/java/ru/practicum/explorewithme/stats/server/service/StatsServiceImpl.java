@@ -41,6 +41,11 @@ public class StatsServiceImpl implements StatsService {
         log.debug("Service: Requesting stats with params: start={}, end={}, uris={}, unique={}",
             start, end, urisFromController, unique);
 
+        if (start != null && end != null && start.isAfter(end)) {
+            log.warn("Validation error in getStats: Start date {} is after end date {}", start, end);
+            throw new IllegalArgumentException("Error: Start date cannot be after end date.");
+        }
+
         // Пустой список URI явно конвертируется в null для обработки репозиторием
         Collection<String> urisForRepo = (urisFromController == null || urisFromController.isEmpty()) ? null : urisFromController;
 
