@@ -30,6 +30,7 @@
 	<modules>
 		<module>stats-service</module>
 		<module>main-service</module>
+		<module>ewm-common</module>
 	</modules>
 
 	<dependencyManagement>
