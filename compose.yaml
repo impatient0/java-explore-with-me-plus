@@ -24,6 +24,7 @@ services:
       POSTGRES_DB: ewm_stats_db
     volumes:
       - stats_db_data:/var/lib/postgresql/data
+      - ./stats-service/stats-server/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -p 5432" ]
       interval: 10s
@@ -58,6 +59,7 @@ services:
 #      POSTGRES_DB: ewm_main_db
 #    volumes:
 #      - main_db_data:/var/lib/postgresql/data
+#      - ./main-service/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
 #    healthcheck:
 #      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -p 5432" ]
 #      interval: 10s
