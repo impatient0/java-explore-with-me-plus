@@ -32,6 +32,7 @@ class StatsClientTest {
     private MockRestServiceServer mockServer;
     private StatsClientImpl statsClient;
     private final String baseUrl = "http://stats-server:9090";
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @BeforeEach
     void setUp() {
@@ -68,7 +69,7 @@ class StatsClientTest {
                     .andExpect(jsonPath("$.app").value("service"))
                     .andExpect(jsonPath("$.uri").value("/test"))
                     .andExpect(jsonPath("$.ip").value("192.168.0.1"))
-                    .andRespond(withStatus(HttpStatus.OK));
+                    .andRespond(withStatus(HttpStatus.CREATED));
 
             // Вызов тестируемого метода
             assertDoesNotThrow(
@@ -105,7 +106,7 @@ class StatsClientTest {
 
             assertThat(exception.getMessage())
                     .as("Сообщение об ошибке должно содержать информацию о проблеме")
-                    .contains("Ошибка");
+                    .contains("500");
 
             // Проверка выполнения всех ожиданий
             mockServer.verify();
@@ -166,9 +167,9 @@ class StatsClientTest {
         @Test
         @DisplayName("Успешное получение статистики")
         void getStats_successful() {
-            // Подготовка тестовых данных
-            String start = "2023-01-01 00:00:00";
-            String end = "2023-12-31 23:59:59";
+            // Подготовка тестовых данных с использованием LocalDateTime
+            LocalDateTime start = LocalDateTime.of(2023, 1, 1, 0, 0, 0);
+            LocalDateTime end = LocalDateTime.of(2023, 12, 31, 23, 59, 59);
             List<String> uris = Arrays.asList("/event/1", "/event/2");
             Boolean unique = true;
 
@@ -176,10 +177,14 @@ class StatsClientTest {
                     "[{\"app\":\"app1\",\"uri\":\"/event/1\",\"hits\":10}," +
                             "{\"app\":\"app1\",\"uri\":\"/event/2\",\"hits\":5}]";
 
-            // Формирование URL для запроса с кодированием пробелов в датах
+            // Форматированные строки для URL
+            String formattedStart = "2023-01-01%2000:00:00";
+            String formattedEnd = "2023-12-31%2023:59:59";
+
+            // Формирование URL для запроса
             String url = baseUrl + "/stats" +
-                    "?start=2023-01-01%2000:00:00" +
-                    "&end=2023-12-31%2023:59:59" +
+                    "?start=" + formattedStart +
+                    "&end=" + formattedEnd +
                     "&uris=/event/1" +
                     "&uris=/event/2" +
                     "&unique=" + unique;
@@ -224,18 +229,22 @@ class StatsClientTest {
         @Test
         @DisplayName("Получение статистики с пустым списком URI")
         void getStats_withEmptyUris() {
-            // Подготовка тестовых данных
-            String start = "2023-01-01 00:00:00";
-            String end = "2023-12-31 23:59:59";
+            // Подготовка тестовых данных с использованием LocalDateTime
+            LocalDateTime start = LocalDateTime.of(2023, 1, 1, 0, 0, 0);
+            LocalDateTime end = LocalDateTime.of(2023, 12, 31, 23, 59, 59);
             List<String> uris = Collections.emptyList();
             Boolean unique = false;
 
             String expectedResponseJson = "[{\"app\":\"app1\",\"uri\":\"all\",\"hits\":15}]";
 
-            // Формирование URL для запроса с кодированием пробелов в датах
+            // Форматированные строки для URL
+            String formattedStart = "2023-01-01%2000:00:00";
+            String formattedEnd = "2023-12-31%2023:59:59";
+
+            // Формирование URL для запроса
             String url = baseUrl + "/stats" +
-                    "?start=2023-01-01%2000:00:00" +
-                    "&end=2023-12-31%2023:59:59" +
+                    "?start=" + formattedStart +
+                    "&end=" + formattedEnd +
                     "&unique=" + unique;
 
             // Настройка ожидания и ответа сервера
@@ -270,18 +279,22 @@ class StatsClientTest {
         @Test
         @DisplayName("Получение статистики с null вместо списка URI")
         void getStats_withNullUris() {
-            // Подготовка тестовых данных
-            String start = "2023-01-01 00:00:00";
-            String end = "2023-12-31 23:59:59";
+            // Подготовка тестовых данных с использованием LocalDateTime
+            LocalDateTime start = LocalDateTime.of(2023, 1, 1, 0, 0, 0);
+            LocalDateTime end = LocalDateTime.of(2023, 12, 31, 23, 59, 59);
             List<String> uris = null;
             Boolean unique = false;
 
             String expectedResponseJson = "[{\"app\":\"app1\",\"uri\":\"all\",\"hits\":15}]";
 
+            // Форматированные строки для URL
+            String formattedStart = "2023-01-01%2000:00:00";
+            String formattedEnd = "2023-12-31%2023:59:59";
+
             // URL без параметров uris
             String url = baseUrl + "/stats" +
-                    "?start=2023-01-01%2000:00:00" +
-                    "&end=2023-12-31%2023:59:59" +
+                    "?start=" + formattedStart +
+                    "&end=" + formattedEnd +
                     "&unique=" + unique;
 
             // Настройка ожидания и ответа сервера
@@ -308,18 +321,22 @@ class StatsClientTest {
         @Test
         @DisplayName("Получение статистики с null вместо флага unique")
         void getStats_withNullUniqueFlag() {
-            // Подготовка тестовых данных
-            String start = "2023-01-01 00:00:00";
-            String end = "2023-12-31 23:59:59";
+            // Подготовка тестовых данных с использованием LocalDateTime
+            LocalDateTime start = LocalDateTime.of(2023, 1, 1, 0, 0, 0);
+            LocalDateTime end = LocalDateTime.of(2023, 12, 31, 23, 59, 59);
             List<String> uris = Collections.singletonList("/event/1");
             Boolean unique = null;
 
             String expectedResponseJson = "[{\"app\":\"app1\",\"uri\":\"/event/1\",\"hits\":10}]";
 
+            // Форматированные строки для URL
+            String formattedStart = "2023-01-01%2000:00:00";
+            String formattedEnd = "2023-12-31%2023:59:59";
+
             // URL с null в качестве unique
             String url = baseUrl + "/stats" +
-                    "?start=2023-01-01%2000:00:00" +
-                    "&end=2023-12-31%2023:59:59" +
+                    "?start=" + formattedStart +
+                    "&end=" + formattedEnd +
                     "&uris=/event/1";
 
             // Настройка ожидания и ответа сервера
@@ -346,16 +363,20 @@ class StatsClientTest {
         @Test
         @DisplayName("Обработка ошибки сервера при получении статистики")
         void getStats_throwsExceptionWhenFails() {
-            // Подготовка тестовых данных
-            String start = "2023-01-01 00:00:00";
-            String end = "2023-12-31 23:59:59";
+            // Подготовка тестовых данных с использованием LocalDateTime
+            LocalDateTime start = LocalDateTime.of(2023, 1, 1, 0, 0, 0);
+            LocalDateTime end = LocalDateTime.of(2023, 12, 31, 23, 59, 59);
             List<String> uris = Arrays.asList("/event/1", "/event/2");
             Boolean unique = true;
 
-            // Формирование URL для запроса с кодированием пробелов в датах
+            // Форматированные строки для URL
+            String formattedStart = "2023-01-01%2000:00:00";
+            String formattedEnd = "2023-12-31%2023:59:59";
+
+            // Формирование URL для запроса
             String url = baseUrl + "/stats" +
-                    "?start=2023-01-01%2000:00:00" +
-                    "&end=2023-12-31%2023:59:59" +
+                    "?start=" + formattedStart +
+                    "&end=" + formattedEnd +
                     "&uris=/event/1" +
                     "&uris=/event/2" +
                     "&unique=" + unique;
@@ -374,7 +395,7 @@ class StatsClientTest {
 
             assertThat(exception.getMessage())
                     .as("Сообщение об ошибке должно содержать информацию о проблеме")
-                    .contains("Ошибка");
+                    .contains("500");
 
             // Проверка выполнения всех ожиданий
             mockServer.verify();
@@ -383,16 +404,20 @@ class StatsClientTest {
         @Test
         @DisplayName("Получение пустого массива в ответе")
         void getStats_emptyResponse() {
-            // Подготовка тестовых данных
-            String start = "2023-01-01 00:00:00";
-            String end = "2023-12-31 23:59:59";
+            // Подготовка тестовых данных с использованием LocalDateTime
+            LocalDateTime start = LocalDateTime.of(2023, 1, 1, 0, 0, 0);
+            LocalDateTime end = LocalDateTime.of(2023, 12, 31, 23, 59, 59);
             List<String> uris = Arrays.asList("/non-existent/1", "/non-existent/2");
             Boolean unique = true;
 
+            // Форматированные строки для URL
+            String formattedStart = "2023-01-01%2000:00:00";
+            String formattedEnd = "2023-12-31%2023:59:59";
+
             // Формирование URL
             String url = baseUrl + "/stats" +
-                    "?start=2023-01-01%2000:00:00" +
-                    "&end=2023-12-31%2023:59:59" +
+                    "?start=" + formattedStart +
+                    "&end=" + formattedEnd +
                     "&uris=/non-existent/1" +
                     "&uris=/non-existent/2" +
                     "&unique=" + unique;
