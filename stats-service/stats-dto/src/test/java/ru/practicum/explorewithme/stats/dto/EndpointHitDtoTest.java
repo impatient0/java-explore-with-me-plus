@@ -1,3 +1,4 @@
+// CHECKSTYLE:OFF RegexpSinglelineJava
 package ru.practicum.explorewithme.stats.dto;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
