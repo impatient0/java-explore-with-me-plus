@@ -40,5 +40,36 @@
       <artifactId>junit-jupiter</artifactId>
     </dependency>
   </dependencies>
-
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>7.8.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${project.basedir}/src/main/resources/ewm-stats-service.json</inputSpec>
+              <generatorName>java</generatorName>
+              <output>${project.build.directory}/generated-sources/openapi</output>
+              <modelPackage>ru.practicum.explorewithme.stats.dto</modelPackage>
+              <apiPackage>ru.practicum.explorewithme.stats.api</apiPackage>
+              <generateApis>false</generateApis>
+              <generateSupportingFiles>false</generateSupportingFiles>
+              <configOptions>
+                <dateLibrary>java8</dateLibrary>
+                <serializationLibrary>jackson</serializationLibrary>
+                <useBeanValidation>true</useBeanValidation>
+                <useLombokAnnotations>true</useLombokAnnotations>
+                <sourceFolder>ru/practicum/explorewithme/stats/dto</sourceFolder>
+              </configOptions>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

@@ -1,0 +1,60 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Stats Service API",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "EndpointHitDto": {
+        "type": "object",
+        "required": ["app", "uri", "ip", "timestamp"],
+        "properties": {
+          "app": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "description": "Название приложения"
+          },
+          "uri": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "URI запроса"
+          },
+          "ip": {
+            "type": "string",
+            "minLength": 7,
+            "maxLength": 16,
+            "description": "IP-адрес пользователя"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Время запроса в формате yyyy-MM-dd HH:mm:ss",
+            "example": "2024-03-15 12:30:00"
+          }
+        }
+      },
+      "ViewStatsDto": {
+        "type": "object",
+        "properties": {
+          "app": {
+            "type": "string",
+            "description": "Название приложения"
+          },
+          "uri": {
+            "type": "string",
+            "description": "URI запроса"
+          },
+          "hits": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Количество просмотров"
+          }
+        }
+      }
+    }
+  }
+}
