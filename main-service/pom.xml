@@ -10,6 +10,7 @@
   </parent>
 
   <artifactId>main-service</artifactId>
+  <packaging>jar</packaging>
 
   <dependencies>
     <dependency>
@@ -30,6 +31,21 @@
       <artifactId>ewm-common</artifactId>
       <version>${project.version}</version>
     </dependency>
+
+    <!-- добавлено Сергеем - возможно надо исправить как надо ... -->
+    <dependency>
+      <groupId>jakarta.persistence</groupId>
+      <artifactId>jakarta.persistence-api</artifactId>
+      <version>3.1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>1.18.30</version>
+      <scope>provided</scope>
+    </dependency>
+
+
   </dependencies>
 
   <build>
