@@ -104,11 +104,11 @@ public class Event {
      * Текущее состояние события
      */
     @Enumerated(EnumType.STRING)
-    @Column(name = "state", nullable = false)
+    @Column(name = "state", nullable = false, length = 20)
     private EventState state;
 
     /**
-     *  Cписок подборок, в которых присутствует событие ( создано для корректной обратной выборки )
+     *  Список подборок, в которых присутствует событие (создано для корректной обратной выборки)
      */
     @ManyToMany(mappedBy = "events")
     private Set<Compilation> compilations = new HashSet<>();

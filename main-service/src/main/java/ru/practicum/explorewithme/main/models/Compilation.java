@@ -25,7 +25,7 @@ public class Compilation {
     private Long id;
 
     /**
-     * Флаг, закрепленa ли подборка на главной странице.
+     * Флаг, закреплена ли подборка на главной странице.
      */
     @Column(name = "pinned", nullable = false)
     private boolean pinned = false;
