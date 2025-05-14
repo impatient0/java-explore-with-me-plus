@@ -28,7 +28,7 @@ public class Event {
     /**
      * Краткая аннотация события
      */
-    @Column(name = "annotation", nullable = false)
+    @Column(name = "annotation", nullable = false, length = 255)
     private String annotation;
 
     /**

@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 @ToString(exclude = {"requester", "event"})
 @EqualsAndHashCode(of = {"id", "created"})
-public class Request {
+public class ParticipationRequest {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
