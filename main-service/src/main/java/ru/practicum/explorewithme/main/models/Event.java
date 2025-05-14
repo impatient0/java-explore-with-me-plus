@@ -28,13 +28,13 @@ public class Event {
     /**
      * Краткая аннотация события
      */
-    @Column(name = "annotation", nullable = false, length = 255)
+    @Column(name = "annotation", nullable = false, length = 2000)
     private String annotation;
 
     /**
      * Полное описание события
      */
-    @Column(name = "description", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "description", nullable = false, length = 7000)
     private String description;
 
     /**
@@ -76,7 +76,7 @@ public class Event {
     /**
      * Заголовок события
      */
-    @Column(name = "title", nullable = false, length = 128)
+    @Column(name = "title", nullable = false, length = 120)
     private String title;
 
     /**

@@ -24,13 +24,13 @@ public class User {
     /**
      * Имя пользователя.
      */
-    @Column(name = "name", nullable = false, length = 128)
+    @Column(name = "name", nullable = false, length = 250)
     private String name;
 
     /**
      * Электронная почта пользователя (уникальный идентификатор).
      */
-    @Column(name = "email", nullable = false, length = 128, unique = true)
+    @Column(name = "email", nullable = false, length = 254, unique = true)
     private String email;
 
 }
