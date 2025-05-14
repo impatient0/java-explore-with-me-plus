@@ -24,7 +24,7 @@ public class Location {
     /**
      * Уникальное название локации.
      */
-    @Column(name = "title", nullable = false, length = 64, unique = true)
+    @Column(name = "title", nullable = false, length = 128, unique = true)
     private String title;
 
     /**

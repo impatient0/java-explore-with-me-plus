@@ -3,6 +3,9 @@ package ru.practicum.explorewithme.main.models;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Table(name = "compilations")
 @Getter
@@ -44,4 +47,3 @@ public class Compilation {
     )
     private Set<Event> events = new HashSet<>();
 }
-
