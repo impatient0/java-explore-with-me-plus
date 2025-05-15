@@ -14,7 +14,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"category", "initiator", "location", "compilations"})
+@ToString(exclude = {"category", "initiator", "compilations"})
 @EqualsAndHashCode(of = {"id", "title", "annotation", "eventDate", "publishedOn"})
 public class Event {
 
@@ -96,8 +96,7 @@ public class Event {
     /**
      * Местоположение события
      */
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "location_id", nullable = false)
+    @Embedded
     private Location location;
 
     /**
