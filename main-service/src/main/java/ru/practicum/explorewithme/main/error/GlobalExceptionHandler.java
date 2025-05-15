@@ -70,7 +70,7 @@ public class GlobalExceptionHandler {
         return ApiError.builder()
             .status(HttpStatus.CONFLICT)
             .reason("Integrity constraint has been violated.")
-            .message("A database integrity constraint was violated: " + e.getMostSpecificCause().getMessage()) // Or a more generic message
+            .message("A database integrity constraint was violated: " + e.getMostSpecificCause().getMessage())
             .timestamp(LocalDateTime.now())
             .build();
     }
