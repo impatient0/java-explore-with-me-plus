@@ -1,11 +1,14 @@
 package ru.practicum.explorewithme.main.service;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.isNull;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.querydsl.core.types.Predicate;
@@ -173,17 +176,21 @@ class EventServiceImplTest {
         }
 
         @Test
-        @DisplayName("Должен передавать null предикат в репозиторий, если фильтры не заданы")
-        void getEventsAdmin_withNoFilters_shouldPassNullPredicateIfBuilderIsEmpty() {
+        @DisplayName("Поиск без фильтров должен вызывать eventRepository.findAll с 'пустым' "
+            + "предикатом")
+        void getEventsAdmin_whenNoFilters_shouldCallRepositoryWithEmptyPredicate() {
             Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.ASC, "id"));
             Page<Event> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
 
-            when(eventRepository.findAll(isNull(Predicate.class), eq(pageable))).thenReturn(
-                emptyPage);
+            when(eventRepository.findAll(any(Predicate.class), eq(pageable))).thenReturn(emptyPage);
 
             eventService.getEventsAdmin(null, null, null, null, null, 0, 10);
 
-            verify(eventRepository).findAll(isNull(Predicate.class), eq(pageable));
+            ArgumentCaptor<Predicate> predicateCaptor = ArgumentCaptor.forClass(Predicate.class);
+            verify(eventRepository).findAll(predicateCaptor.capture(), eq(pageable));
+
+            Predicate capturedPredicate = predicateCaptor.getValue();
+            assertNotNull(capturedPredicate);
         }
 
         @Test
@@ -223,6 +230,27 @@ class EventServiceImplTest {
                 predicateString.contains(eventDatePath + " <= " + rangeEnd.toString()),
                 "Фильтр по конечной дате"));
             verify(eventRepository).findAll(capturedPredicate, pageable);
+        }
+
+        @Test
+        @DisplayName("Должен выбросить IllegalArgumentException, если rangeStart после rangeEnd")
+        void getEventsAdmin_whenRangeStartIsAfterRangeEnd_shouldThrowIllegalArgumentException() {
+            LocalDateTime rangeStart = plusTwoHours; // now.plusHours(2)
+            LocalDateTime rangeEnd = plusOneHour;   // now.plusHours(1)
+            List<Long> users = null;
+            List<EventState> states = null;
+            List<Long> categories = null;
+            int from = 0;
+            int size = 10;
+
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+                eventService.getEventsAdmin(users, states, categories, rangeStart, rangeEnd, from, size);
+            });
+
+            assertEquals("Admin search: rangeStart cannot be after rangeEnd.", exception.getMessage());
+
+            verifyNoInteractions(eventRepository);
+            verifyNoInteractions(eventMapper);
         }
     }
 
