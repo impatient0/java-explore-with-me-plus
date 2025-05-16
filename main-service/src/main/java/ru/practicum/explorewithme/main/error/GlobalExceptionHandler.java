@@ -1,5 +1,7 @@
 package ru.practicum.explorewithme.main.error;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import ru.practicum.explorewithme.common.error.ApiError;
 
 @RestControllerAdvice
@@ -87,6 +90,56 @@ public class GlobalExceptionHandler {
             .build();
     }
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError handleConstraintViolationException(final ConstraintViolationException e) {
+        List<String> errors = e.getConstraintViolations()
+            .stream()
+            .map(violation -> String.format("Parameter '%s': value '%s' %s",
+                extractParameterName(violation),
+                violation.getInvalidValue(),
+                violation.getMessage()))
+            .collect(Collectors.toList());
+
+        String errorMessage = "Validation constraint(s) violated: " + String.join("; ", errors);
+        log.warn(errorMessage, e);
+
+        return ApiError.builder()
+            .errors(errors)
+            .status(HttpStatus.BAD_REQUEST)
+            .reason("One or more validation constraints were violated.")
+            .message(errorMessage)
+            .timestamp(LocalDateTime.now())
+            .build();
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError handleMethodArgumentTypeMismatchException(final MethodArgumentTypeMismatchException e) {
+        String parameterName = e.getName();
+        Object invalidValue = e.getValue();
+        Class<?> requiredType = e.getRequiredType(); // Ожидаемый тип
+
+        String message;
+        if (requiredType != null) {
+            message = String.format("Parameter '%s' should be of type '%s' but was '%s'.",
+                parameterName, requiredType.getSimpleName(), invalidValue);
+        } else {
+            message = String.format("Parameter '%s' has an invalid value '%s'.",
+                parameterName, invalidValue);
+        }
+
+        log.warn("Type mismatch for parameter '{}': required type '{}', value '{}'. Full exception: {}",
+            parameterName, requiredType != null ? requiredType.getName() : "unknown", invalidValue, e.getMessage());
+
+        return ApiError.builder()
+            .status(HttpStatus.BAD_REQUEST)
+            .reason("Incorrectly made request due to a type mismatch for a request parameter.")
+            .message(message)
+            .timestamp(LocalDateTime.now())
+            .build();
+    }
+
     @ExceptionHandler(Throwable.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiError handleThrowable(final Throwable e) {
@@ -97,6 +150,14 @@ public class GlobalExceptionHandler {
             .message("An internal server error has occurred: " + e.getMessage())
             .timestamp(LocalDateTime.now())
             .build();
+    }
+
+    private String extractParameterName(ConstraintViolation<?> violation) {
+        String propertyPath = violation.getPropertyPath().toString();
+        if (propertyPath.contains(".")) {
+            return propertyPath.substring(propertyPath.lastIndexOf('.') + 1);
+        }
+        return propertyPath;
     }
 }
 
