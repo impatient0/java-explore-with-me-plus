@@ -17,6 +17,3 @@ public interface EventMapper {
 
     List<EventFullDto> toEventFullDtoList(List<Event> events);
 }
-
-
-
