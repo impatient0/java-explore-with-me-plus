@@ -73,7 +73,7 @@ public class EventServiceImpl implements EventService {
         if (rangeEnd != null) {
             predicate.and(qEvent.eventDate.loe(rangeEnd)); // lower or equal
         }
-        
+
         Predicate finalPredicate = predicate.getValue();
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.ASC, "id"));
