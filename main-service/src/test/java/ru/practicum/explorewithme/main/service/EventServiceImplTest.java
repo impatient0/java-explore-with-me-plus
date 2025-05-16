@@ -243,9 +243,9 @@ class EventServiceImplTest {
             int from = 0;
             int size = 10;
 
-            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-                eventService.getEventsAdmin(users, states, categories, rangeStart, rangeEnd, from, size);
-            });
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> eventService.getEventsAdmin(users, states, categories, rangeStart, rangeEnd,
+                    from, size));
 
             assertEquals("Admin search: rangeStart cannot be after rangeEnd.", exception.getMessage());
 
