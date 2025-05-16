@@ -11,6 +11,8 @@
     - [Сборка проекта](#сборка-проекта)
     - [Запуск с использованием Docker Compose](#запуск-с-использованием-docker-compose)
     - [Локальный запуск для разработки (IntelliJ IDEA)](#локальный-запуск-для-разработки-intellij-idea)
+        - [Локальный запуск Stats Service](#локальный-запуск-stats-service)
+        - [Локальный запуск Main Service](#локальный-запуск-main-service)
 - [Тестирование](#тестирование)
 - [Дополнительная функциональность](#дополнительная-функциональность)
 - [Планы по использованию OpenAPI Generator](#планы-по-использованию-openapi-generator)
@@ -19,10 +21,10 @@
 ## Технологии
 
 - Java 21
-- Spring Boot 3.4.5
+- Spring Boot 3.4.5 # Убедитесь, что версия актуальна (в вашем корневом pom.xml указана эта версия)
 - Spring Data JPA
 - Spring MVC
-- PostgreSQL
+- PostgreSQL 16.1 # Можно уточнить версию PostgreSQL
 - Maven
 - Docker / Docker Compose
 - Lombok
@@ -35,12 +37,13 @@
 Проект является многомодульным Maven-проектом и состоит из следующих основных частей:
 
 - `explore-with-me` (корневой POM)
-    - `main-service`: Основной сервис приложения.
+    - `ewm-common`: Общий модуль, содержащий классы, используемые как основным сервисом, так и сервисом статистики (например, `ApiError.java`).
+    - `main-service`: Основной сервис приложения. Отвечает за бизнес-логику, управление пользователями, событиями, категориями, подборками и запросами на участие.
         - `Dockerfile`
     - `stats-service` (родительский POM для модулей статистики)
         - `stats-dto`: Data Transfer Objects (DTO) для сервиса статистики.
-        - `stats-client`: HTTP-клиент для взаимодействия с сервисом статистики.
-        - `stats-server`: Сервис статистики (сбор и предоставление данных о запросах).
+        - `stats-client`: HTTP-клиент для взаимодействия с сервисом статистики (используется `main-service`).
+        - `stats-server`: Сервис статистики (сбор и предоставление данных о запросах к эндпоинтам).
             - `Dockerfile`
 
 ## Начало работы
@@ -65,9 +68,9 @@ mvn clean install
 
 ### Запуск с использованием Docker Compose
 
-Наиболее предпочтительный способ запуска всего приложения (или его частей) – использование Docker Compose.
+Наиболее предпочтительный способ запуска всего приложения – использование Docker Compose. Это обеспечит запуск всех сервисов (`main-service`, `stats-server`) и их соответствующих баз данных PostgreSQL в изолированных контейнерах.
 
-1.  **Соберите проект:**
+1.  **Соберите проект (если не делали ранее):**
     ```bash
     mvn clean install
     ```
@@ -76,12 +79,19 @@ mvn clean install
     ```bash
     docker-compose up --build -d
     ```
-    Эта команда соберет Docker-образы для `stats-server` и `main-service` (если раскомментирован в `docker-compose.yml`) и запустит их вместе с необходимыми базами данных PostgreSQL.
-
+    Ключ `-d` запускает контейнеры в фоновом режиме.
+    Эта команда соберет Docker-образы для `stats-server` и `main-service` и запустит их вместе с необходимыми базами данных PostgreSQL.
     - Сервис статистики (`stats-server`) будет доступен по адресу: `http://localhost:9090`
-    - Основной сервис (`main-service`) будет доступен по адресу: `http://localhost:8080` (когда будет реализован и раскомментирован)
+    - Основной сервис (`main-service`) будет доступен по адресу: `http://localhost:8080`
 
-3.  **Остановка сервисов:**
+3.  **Просмотр логов (при запуске с `-d`):**
+    ```bash
+    docker-compose logs -f main-service
+    docker-compose logs -f stats-server
+    # или docker-compose logs -f для всех сервисов
+    ```
+
+4.  **Остановка сервисов:**
     ```bash
     docker-compose down
     ```
@@ -92,31 +102,71 @@ mvn clean install
 
 ### Локальный запуск для разработки (IntelliJ IDEA)
 
-Для удобства разработки и отладки, особенно сервиса статистики (`stats-server`), предусмотрен профиль запуска `stat-local` в IntelliJ IDEA.
+Для удобства разработки и отладки можно запускать сервисы локально из IntelliJ IDEA.
 
-1.  **Настройка базы данных:**
+#### Локальный запуск Stats Service
+
+Предусмотрен профиль запуска `stat-local` в IntelliJ IDEA для `stats-server`.
+
+1.  **Настройка базы данных для `stats-server`:**
     Убедитесь, что у вас локально запущен экземпляр PostgreSQL, доступный по адресу, указанному в `stats-service/stats-server/src/main/resources/application-local.yml`.
     Примерные параметры для `application-local.yml`:
     ```yaml
     spring:
       datasource:
-        url: jdbc:postgresql://localhost:6543/ewm_stats_db # Убедитесь, что порт и имя БД соответствуют вашей локальной PG
+        url: jdbc:postgresql://localhost:6543/ewm_stats_db # Убедитесь, что порт и имя БД соответствуют вашей локальной PG для stats-db
         username: stats_user # Ваш пользователь
         password: stats_password # Ваш пароль
       jpa:
         hibernate:
           ddl-auto: update # или create-drop для локальной разработки
+    # ... другие настройки, если нужны ...
     ```
     *Примечание: Вам может потребоваться создать базу данных `ewm_stats_db` и пользователя `stats_user` вручную, если они еще не существуют.*
 
 2.  **Запуск `StatsServerApplication`:**
     - Откройте проект в IntelliJ IDEA.
     - Найдите класс `StatsServerApplication.java` в модуле `stats-server`.
-    - В репозитории должна быть предустановленная Run Configuration "stat-local". Если нет, создайте новую конфигурацию Spring Boot:
+    - В репозитории должна быть предустановленная Run Configuration "stat-local" (проверьте `.idea/runConfigurations/`). Если нет, создайте новую конфигурацию Spring Boot:
         - **Main class:** `ru.practicum.explorewithme.stats.server.StatsServerApplication`
-        - **VM options:** `-Dspring.profiles.active=local` (это активирует `application-local.yml`)
-        - **Working directory:** Установите корневую директорию модуля `stats-server`.
-    - Запустите эту конфигурацию. Сервис статистики должен запуститься и подключиться к вашей локальной базе данных.
+        - **VM options:** `-Dspring.profiles.active=local` (активирует `application-local.yml`)
+        - **Working directory:** Корневая директория модуля `stats-server`.
+    - Запустите эту конфигурацию.
+
+#### Локальный запуск Main Service
+
+Аналогично можно настроить локальный запуск для `main-service`.
+
+1.  **Настройка базы данных для `main-service`:**
+    Убедитесь, что у вас локально запущен экземпляр PostgreSQL, доступный по адресу, указанному в `main-service/src/main/resources/application-local.yml`.
+    Создайте файл `application-local.yml` в `main-service/src/main/resources/` (если его еще нет) с примерным содержанием:
+    ```yaml
+    # URL сервиса статистики для локального запуска main-service,
+    # если stats-server тоже запущен локально на порту 9090
+    stats-server:
+      url: http://localhost:9090
+
+    spring:
+      datasource:
+        url: jdbc:postgresql://localhost:5432/ewm_main_db # Убедитесь, что порт и имя БД соответствуют вашей локальной PG для ewm-db
+        username: ewm_user # Ваш пользователь
+        password: ewm_password # Ваш пароль
+      jpa:
+        hibernate:
+          ddl-auto: update # или create-drop для локальной разработки
+    # ... другие настройки, если нужны ...
+    ```
+    *Примечание: Вам может потребоваться создать базу данных `ewm_main_db` и пользователя `ewm_user` вручную, если они еще не существуют.*
+    *Также убедитесь, что сервис статистики (`stats-server`) запущен (локально или в Docker), если `main-service` будет к нему обращаться.*
+
+2.  **Запуск `MainServiceApplication`:**
+    - Найдите класс `MainServiceApplication.java` в модуле `main-service`.
+    - Создайте новую Run Configuration "main-local" в IntelliJ IDEA (по аналогии со `stat-local`):
+        - **Main class:** `ru.practicum.explorewithme.main.MainServiceApplication`
+        - **VM options:** `-Dspring.profiles.active=local` (активирует `application-local.yml`)
+        - **Working directory:** Корневая директория модуля `main-service`.
+        - **(Важно!)** Убедитесь, что эта конфигурация **расшарена через VCS** (поставьте галочку "Share through VCS" в настройках Run Configuration), чтобы она попала в репозиторий.
+    - Запустите эту конфигурацию.
 
 ## Тестирование
 
@@ -141,7 +191,7 @@ mvn test
 
 ## Планы по использованию OpenAPI Generator
 
-Команда планировала исследовать `openapi-generator-maven-plugin` для автоматической генерации DTO и, возможно, интерфейсов контроллеров на основе OpenAPI спецификаций. Однако, в связи с необходимостью сосредоточиться на основной функциональности первого этапа и отсутствием у команды предварительного опыта работы с данным инструментом, активное внедрение и использование генератора **отложено на более поздний срок**. На текущем этапе DTO создаются вручную.
+Команда планировала исследовать `openapi-generator-maven-plugin` для автоматической генерации DTO и, возможно, интерфейсов контроллеров на основе OpenAPI спецификаций. По результатам исследования ([ссылка на документ Леры или краткое резюме, если есть]) было принято решение на текущем этапе **отказаться от автоматической генерации DTO** в пользу ручного создания. Это связано с лучшим контролем над кодом, интеграцией с Lombok и Jackson, а также более точной настройкой валидации, что на данном этапе более эффективно для команды. Вопрос может быть пересмотрен в будущем при значительном увеличении количества DTO или частоты изменения API.
 
 ## Команда
 
