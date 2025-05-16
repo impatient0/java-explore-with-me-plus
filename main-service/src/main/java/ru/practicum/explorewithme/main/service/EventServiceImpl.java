@@ -78,7 +78,7 @@ public class EventServiceImpl implements EventService {
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.ASC, "id"));
 
-        Page<Event> eventPage = eventRepository.findAll(finalPredicate, pageable);
+        Page<Event> eventPage = eventRepository.findAll(predicate, pageable);
 
         if (eventPage.isEmpty()) {
             return Collections.emptyList();
