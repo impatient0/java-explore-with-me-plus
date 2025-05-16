@@ -161,11 +161,10 @@ mvn clean install
 
 2.  **Запуск `MainServiceApplication`:**
     - Найдите класс `MainServiceApplication.java` в модуле `main-service`.
-    - Создайте новую Run Configuration "main-local" в IntelliJ IDEA (по аналогии со `stat-local`):
+    - В репозитории должна быть предустановленная Run Configuration "main-local" (проверьте `.idea/runConfigurations/`). Если нет, создайте новую конфигурацию Spring Boot:
         - **Main class:** `ru.practicum.explorewithme.main.MainServiceApplication`
         - **VM options:** `-Dspring.profiles.active=local` (активирует `application-local.yml`)
-        - **Working directory:** Корневая директория модуля `main-service`.
-        - **(Важно!)** Убедитесь, что эта конфигурация **расшарена через VCS** (поставьте галочку "Share through VCS" в настройках Run Configuration), чтобы она попала в репозиторий.
+        - **Working directory:** Корневая директория модуля `main-service`. 
     - Запустите эту конфигурацию.
 
 ## Тестирование
