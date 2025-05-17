@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(name = "requests", uniqueConstraints = {
@@ -16,6 +18,7 @@ import java.time.LocalDateTime;
 @Builder
 @ToString(exclude = {"requester", "event"})
 @EqualsAndHashCode(of = {"id", "created"})
+@EntityListeners(AuditingEntityListener.class)
 public class ParticipationRequest {
 
     @Id
@@ -25,9 +28,9 @@ public class ParticipationRequest {
     /**
      * Дата и время создания запроса
      */
+    @CreatedDate
     @Column(name = "created", nullable = false)
-    @Builder.Default
-    private LocalDateTime created = LocalDateTime.now();
+    private LocalDateTime created;
 
     /**
      * Пользователь, создавший запрос на участие

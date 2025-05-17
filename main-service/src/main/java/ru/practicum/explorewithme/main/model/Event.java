@@ -6,6 +6,8 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(name = "events")
@@ -16,6 +18,7 @@ import java.util.Set;
 @Builder
 @ToString(exclude = {"category", "initiator", "compilations"})
 @EqualsAndHashCode(of = {"id", "title", "annotation", "eventDate", "publishedOn"})
+@EntityListeners(AuditingEntityListener.class)
 public class Event {
 
     /**
@@ -46,9 +49,9 @@ public class Event {
     /**
      * Дата и время создания события
      */
+    @CreatedDate
     @Column(name = "created_on", nullable = false)
-    @Builder.Default
-    private LocalDateTime createdOn = LocalDateTime.now();
+    private LocalDateTime createdOn;
 
     /**
      * Дата и время публикации события
@@ -60,21 +63,18 @@ public class Event {
      * Флаг платного участия
      */
     @Column(name = "paid", nullable = false)
-    @Builder.Default
     private boolean paid = false;
 
     /**
      * Лимит участников события (0 - без ограничений)
      */
     @Column(name = "participant_limit", nullable = false)
-    @Builder.Default
     private int participantLimit = 0;
 
     /**
      * Требуется ли модерация заявок на участие
      */
     @Column(name = "request_moderation", nullable = false)
-    @Builder.Default
     private boolean requestModeration = true;
 
     /**
@@ -114,7 +114,6 @@ public class Event {
      *  Список подборок, в которых присутствует событие (создано для корректной обратной выборки)
      */
     @ManyToMany(mappedBy = "events")
-    @Builder.Default
     private Set<Compilation> compilations = new HashSet<>();
 
 }

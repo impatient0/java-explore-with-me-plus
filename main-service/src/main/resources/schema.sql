@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS events (
     lon REAL NOT NULL,
     paid BOOLEAN NOT NULL,
     participant_limit INTEGER NOT NULL,
-    published_on TIMESTAMP WITHOUT TIME ZONE,
+    published_on TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     request_moderation BOOLEAN NOT NULL,
     state VARCHAR(20) NOT NULL,
     title VARCHAR(120) NOT NULL,
