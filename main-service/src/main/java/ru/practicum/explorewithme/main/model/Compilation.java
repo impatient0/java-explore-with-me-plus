@@ -40,6 +40,7 @@ public class Compilation {
      * События, входящие в подборку.
      */
     @ManyToMany(fetch = FetchType.LAZY)
+    @Builder.Default
     @JoinTable(
             name = "compilation_events",
             joinColumns = @JoinColumn(name = "compilation_id"),
