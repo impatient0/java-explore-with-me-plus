@@ -63,19 +63,19 @@ public class Event {
      * Флаг платного участия
      */
     @Column(name = "paid", nullable = false)
-    private boolean paid = false;
+    private boolean paid;
 
     /**
      * Лимит участников события (0 - без ограничений)
      */
     @Column(name = "participant_limit", nullable = false)
-    private int participantLimit = 0;
+    private int participantLimit;
 
     /**
      * Требуется ли модерация заявок на участие
      */
     @Column(name = "request_moderation", nullable = false)
-    private boolean requestModeration = true;
+    private boolean requestModeration;
 
     /**
      * Заголовок события
