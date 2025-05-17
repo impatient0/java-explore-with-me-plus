@@ -3,6 +3,6 @@ stats-server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/ewm_main_db
+    url: jdbc:postgresql://localhost:6542/ewm_main_db
     username: emw_user
     password: emw_password
