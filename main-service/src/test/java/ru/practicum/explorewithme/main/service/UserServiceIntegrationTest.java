@@ -1,0 +1,407 @@
+package ru.practicum.explorewithme.main.service;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import ru.practicum.explorewithme.main.dto.NewUserRequest;
+import ru.practicum.explorewithme.main.dto.UserDto;
+import ru.practicum.explorewithme.main.error.EntityAlreadyExistsException;
+import ru.practicum.explorewithme.main.error.EntityNotFoundException;
+import ru.practicum.explorewithme.main.model.User;
+import ru.practicum.explorewithme.main.repository.UserRepository;
+
+import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.explorewithme.main.service.params.GetListUsersParameters;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@SpringBootTest
+@Testcontainers
+@Transactional
+@DisplayName("Интеграционное тестирование UserServiceImpl")
+class UserServiceIntegrationTest {
+
+    @Container
+    static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:13")
+            .withDatabaseName("explorewithme_test")
+            .withUsername("test")
+            .withPassword("test");
+
+    @DynamicPropertySource
+    static void registerPgProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgresContainer::getJdbcUrl);
+        registry.add("spring.datasource.username", postgresContainer::getUsername);
+        registry.add("spring.datasource.password", postgresContainer::getPassword);
+    }
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    private NewUserRequest newUserRequest;
+    private NewUserRequest anotherUserRequest;
+
+    @BeforeEach
+    void setUp() {
+        userRepository.deleteAll();
+
+        newUserRequest = new NewUserRequest();
+        newUserRequest.setName("Тестовый пользователь");
+        newUserRequest.setEmail("test@example.com");
+
+        anotherUserRequest = new NewUserRequest();
+        anotherUserRequest.setName("Другой пользователь");
+        anotherUserRequest.setEmail("another@example.com");
+    }
+
+    @Nested
+    @DisplayName("Создание пользователя")
+    class CreateUserTests {
+
+        @Test
+        @DisplayName("Успешное создание пользователя")
+        void createUser_Success() {
+            // Действие
+            UserDto createdUser = userService.createUser(newUserRequest);
+
+            // Проверка
+            assertNotNull(createdUser);
+            assertNotNull(createdUser.getId());
+            assertEquals(newUserRequest.getName(), createdUser.getName());
+            assertEquals(newUserRequest.getEmail(), createdUser.getEmail());
+
+            // Проверка наличия в БД
+            Optional<User> userFromDb = userRepository.findById(createdUser.getId());
+            assertTrue(userFromDb.isPresent());
+            assertEquals(newUserRequest.getName(), userFromDb.get().getName());
+            assertEquals(newUserRequest.getEmail(), userFromDb.get().getEmail());
+        }
+
+        @Test
+        @DisplayName("Исключение при создании пользователя с дублирующимся email")
+        void createUser_DuplicateEmail_ThrowsException() {
+            // Подготовка
+            userService.createUser(newUserRequest);
+
+            // Проверка исключения при создании пользователя с тем же email
+            EntityAlreadyExistsException exception = assertThrows(EntityAlreadyExistsException.class, () -> {
+                userService.createUser(newUserRequest);
+            });
+
+            // Проверка сообщения об ошибке
+            assertTrue(exception.getMessage().contains(newUserRequest.getEmail()));
+        }
+
+        @Test
+        @DisplayName("Транзакция откатывается при возникновении ошибки")
+        void transactionRollback_WhenExceptionOccurs() {
+            // Подготовка - создаем пользователя
+            UserDto user = userService.createUser(newUserRequest);
+
+            // Действие - пытаемся создать пользователя с тем же email, что должно вызвать ошибку
+            try {
+                userService.createUser(newUserRequest);
+            } catch (EntityAlreadyExistsException ignored) {
+                // Ожидаемое исключение
+            }
+
+            // Проверка - убеждаемся, что в базе только один пользователь
+            assertEquals(1, userRepository.count());
+        }
+    }
+
+    @Nested
+    @DisplayName("Обновление пользователя")
+    class UpdateUserTests {
+
+        @Test
+        @DisplayName("Успешное обновление имени пользователя")
+        void updateUser_Success() {
+            // Подготовка
+            UserDto createdUser = userService.createUser(newUserRequest);
+
+            NewUserRequest updateRequest = new NewUserRequest();
+            updateRequest.setName("Обновленное имя");
+
+            // Действие
+            UserDto updatedUser = userService.updateUser(createdUser.getId(), updateRequest);
+
+            // Проверка
+            assertNotNull(updatedUser);
+            assertEquals(createdUser.getId(), updatedUser.getId());
+            assertEquals("Обновленное имя", updatedUser.getName());
+            assertEquals(createdUser.getEmail(), updatedUser.getEmail());
+
+            // Проверка обновления в БД
+            Optional<User> userFromDb = userRepository.findById(createdUser.getId());
+            assertTrue(userFromDb.isPresent());
+            assertEquals("Обновленное имя", userFromDb.get().getName());
+        }
+
+        @Test
+        @DisplayName("Успешное обновление email пользователя")
+        void updateUser_WithNewEmail_Success() {
+            // Подготовка
+            UserDto createdUser = userService.createUser(newUserRequest);
+
+            NewUserRequest updateRequest = new NewUserRequest();
+            updateRequest.setEmail("updated@example.com");
+
+            // Действие
+            UserDto updatedUser = userService.updateUser(createdUser.getId(), updateRequest);
+
+            // Проверка
+            assertNotNull(updatedUser);
+            assertEquals(createdUser.getId(), updatedUser.getId());
+            assertEquals(createdUser.getName(), updatedUser.getName());
+            assertEquals("updated@example.com", updatedUser.getEmail());
+
+            // Проверка обновления в БД
+            Optional<User> userFromDb = userRepository.findById(createdUser.getId());
+            assertTrue(userFromDb.isPresent());
+            assertEquals("updated@example.com", userFromDb.get().getEmail());
+        }
+
+        @Test
+        @DisplayName("Исключение при обновлении на существующий email")
+        void updateUser_WithExistingEmail_ThrowsException() {
+            // Подготовка
+            UserDto user1 = userService.createUser(newUserRequest);
+            UserDto user2 = userService.createUser(anotherUserRequest);
+
+            NewUserRequest updateRequest = new NewUserRequest();
+            updateRequest.setEmail(user2.getEmail());
+
+            // Проверка исключения при обновлении email на уже существующий
+            EntityAlreadyExistsException exception = assertThrows(EntityAlreadyExistsException.class, () -> {
+                userService.updateUser(user1.getId(), updateRequest);
+            });
+
+            // Проверка сообщения об ошибке
+            assertTrue(exception.getMessage().contains(user2.getEmail()));
+        }
+
+        @Test
+        @DisplayName("Исключение при обновлении несуществующего пользователя")
+        void updateUser_UserNotFound_ThrowsException() {
+            // Подготовка
+            Long nonExistentUserId = 999L;
+
+            // Проверка исключения при обновлении несуществующего пользователя
+            EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
+                userService.updateUser(nonExistentUserId, newUserRequest);
+            });
+
+            // Проверка сообщения об ошибке
+            assertTrue(exception.getMessage().contains(nonExistentUserId.toString()));
+        }
+    }
+
+    @Nested
+    @DisplayName("Удаление пользователя")
+    class DeleteUserTests {
+
+        @Test
+        @DisplayName("Успешное удаление пользователя")
+        void deleteUser_Success() {
+            // Подготовка
+            UserDto createdUser = userService.createUser(newUserRequest);
+
+            // Проверка наличия в БД перед удалением
+            assertTrue(userRepository.existsById(createdUser.getId()));
+
+            // Действие
+            userService.deleteUser(createdUser.getId());
+
+            // Проверка отсутствия в БД после удаления
+            assertFalse(userRepository.existsById(createdUser.getId()));
+        }
+
+        @Test
+        @DisplayName("Исключение при удалении несуществующего пользователя")
+        void deleteUser_UserNotFound_ThrowsException() {
+            // Подготовка
+            Long nonExistentUserId = 999L;
+
+            // Проверка исключения при удалении несуществующего пользователя
+            EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
+                userService.deleteUser(nonExistentUserId);
+            });
+
+            // Проверка сообщения об ошибке
+            assertTrue(exception.getMessage().contains(nonExistentUserId.toString()));
+        }
+    }
+
+    @Nested
+    @DisplayName("Получение списка пользователей")
+    class GetUsersTests {
+
+        @Test
+        @DisplayName("Получение всех пользователей без фильтрации по ID")
+        void getUsers_WithoutIds_ReturnsAllUsers() {
+            // Подготовка
+            UserDto user1 = userService.createUser(newUserRequest);
+            UserDto user2 = userService.createUser(anotherUserRequest);
+
+            GetListUsersParameters parameters = new GetListUsersParameters(null, 0, 10);
+
+            // Действие
+            List<UserDto> users = userService.getUsers(parameters);
+
+            // Проверка
+            assertNotNull(users);
+            assertEquals(2, users.size());
+
+            // Проверка, что оба созданных пользователя присутствуют в результате
+            List<Long> userIds = Arrays.asList(users.get(0).getId(), users.get(1).getId());
+            assertTrue(userIds.contains(user1.getId()));
+            assertTrue(userIds.contains(user2.getId()));
+        }
+
+        @Test
+        @DisplayName("Получение пользователей с фильтрацией по ID")
+        void getUsers_WithIds_ReturnsSpecificUsers() {
+            // Подготовка
+            UserDto user1 = userService.createUser(newUserRequest);
+            userService.createUser(anotherUserRequest); // user2 не должен попасть в выборку
+
+            GetListUsersParameters parameters = new GetListUsersParameters(
+                    Collections.singletonList(user1.getId()), 0, 10);
+
+            // Действие
+            List<UserDto> users = userService.getUsers(parameters);
+
+            // Проверка
+            assertNotNull(users);
+            assertEquals(1, users.size());
+            assertEquals(user1.getId(), users.get(0).getId());
+        }
+
+        @Test
+        @DisplayName("Корректная работа пагинации при получении пользователей")
+        void getUsers_Pagination_ReturnsCorrectPage() {
+            // Подготовка - создаем 5 пользователей
+            List<UserDto> createdUsers = IntStream.range(0, 5)
+                    .mapToObj(i -> {
+                        NewUserRequest request = new NewUserRequest();
+                        request.setName("User " + i);
+                        request.setEmail("user" + i + "@example.com");
+                        return userService.createUser(request);
+                    })
+                    .collect(Collectors.toList());
+
+            // Запрашиваем первую страницу с размером 2
+            GetListUsersParameters page1Params = new GetListUsersParameters(null, 0, 2);
+            List<UserDto> page1 = userService.getUsers(page1Params);
+
+            // Запрашиваем вторую страницу с размером 2
+            GetListUsersParameters page2Params = new GetListUsersParameters(null, 2, 2);
+            List<UserDto> page2 = userService.getUsers(page2Params);
+
+            // Запрашиваем третью страницу с размером 2
+            GetListUsersParameters page3Params = new GetListUsersParameters(null, 4, 2);
+            List<UserDto> page3 = userService.getUsers(page3Params);
+
+            // Проверка
+            assertEquals(2, page1.size());
+            assertEquals(2, page2.size());
+            assertEquals(1, page3.size());
+
+            // Проверяем, что пользователи на страницах разные
+            List<Long> allUserIds = new java.util.ArrayList<>();
+            allUserIds.addAll(page1.stream().map(UserDto::getId).collect(Collectors.toList()));
+            allUserIds.addAll(page2.stream().map(UserDto::getId).collect(Collectors.toList()));
+            allUserIds.addAll(page3.stream().map(UserDto::getId).collect(Collectors.toList()));
+
+            assertEquals(5, allUserIds.size());
+            assertEquals(5, allUserIds.stream().distinct().count());
+        }
+
+        @Test
+        @DisplayName("Получение пустого списка при отсутствии пользователей")
+        void getUsers_EmptyRepository_ReturnsEmptyList() {
+            // Действие
+            GetListUsersParameters parameters = new GetListUsersParameters(null, 0, 10);
+            List<UserDto> users = userService.getUsers(parameters);
+
+            // Проверка
+            assertNotNull(users);
+            assertTrue(users.isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("Тесты производительности")
+    class PerformanceTests {
+
+        @Test
+        @DisplayName("Эффективная работа с большим количеством данных")
+        void getUsers_WithLargeDataset_PerformsEfficiently() {
+            // Создаем 100 пользователей
+            for (int i = 0; i < 100; i++) {
+                NewUserRequest request = new NewUserRequest();
+                request.setName("User " + i);
+                request.setEmail("user" + i + "@example.com");
+                userService.createUser(request);
+            }
+
+            // Замеряем время выполнения запроса
+            long startTime = System.currentTimeMillis();
+            GetListUsersParameters parameters = new GetListUsersParameters(null, 0, 50);
+            List<UserDto> users = userService.getUsers(parameters);
+            long endTime = System.currentTimeMillis();
+
+            // Проверяем результаты
+            assertEquals(50, users.size());
+            assertTrue((endTime - startTime) < 2000); // Ожидаем выполнение менее чем за 2 секунды
+
+            // Логгирование для информации
+            System.out.println("Время выполнения запроса для 50 пользователей из 100: " + (endTime - startTime) + " мс");
+        }
+    }
+
+    @Nested
+    @DisplayName("Тесты обработки граничных случаев")
+    class EdgeCaseTests {
+
+        @Test
+        @DisplayName("Корректная обработка запроса страницы за пределами допустимого диапазона")
+        void getUsers_PageOutOfRange_ReturnsEmptyList() {
+            // Подготовка - создаем 3 пользователей
+            IntStream.range(0, 3)
+                    .forEach(i -> {
+                        NewUserRequest request = new NewUserRequest();
+                        request.setName("User " + i);
+                        request.setEmail("user" + i + "@example.com");
+                        userService.createUser(request);
+                    });
+
+            // Запрашиваем страницу, которая находится за пределами доступных данных
+            GetListUsersParameters outOfRangeParams = new GetListUsersParameters(null, 10, 5);
+            List<UserDto> result = userService.getUsers(outOfRangeParams);
+
+            // Проверка
+            assertNotNull(result);
+            assertTrue(result.isEmpty());
+        }
+
+    }
+}

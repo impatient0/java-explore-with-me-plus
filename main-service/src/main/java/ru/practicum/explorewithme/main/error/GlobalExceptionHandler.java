@@ -152,6 +152,30 @@ public class GlobalExceptionHandler {
             .build();
     }
 
+    @ExceptionHandler(EntityAlreadyExistsException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ApiError handleEntityAlreadyExistsException(EntityAlreadyExistsException e) {
+        log.error("Conflict data: {}", e.getMessage());
+        return ApiError.builder()
+                .status(HttpStatus.CONFLICT)
+                .reason("Requested object already exists")
+                .message("Requested object already exists"+e.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiError handleEntityNotExistException(EntityNotFoundException e) {
+        log.error("Conflict data: {}", e.getMessage());
+        return ApiError.builder()
+                .status(HttpStatus.NOT_FOUND)
+                .reason("Requested object not found")
+                .message("Requested object not found"+e.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
     private String extractParameterName(ConstraintViolation<?> violation) {
         String propertyPath = violation.getPropertyPath().toString();
         if (propertyPath.contains(".")) {
