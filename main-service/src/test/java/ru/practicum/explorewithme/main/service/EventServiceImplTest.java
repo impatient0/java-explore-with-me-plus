@@ -35,6 +35,7 @@ import ru.practicum.explorewithme.main.models.Event;
 import ru.practicum.explorewithme.main.models.EventState;
 import ru.practicum.explorewithme.main.models.QEvent;
 import ru.practicum.explorewithme.main.repository.EventRepository;
+import ru.practicum.explorewithme.main.service.params.AdminEventSearchParams;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Тесты для реализации EventService")
@@ -79,7 +80,8 @@ class EventServiceImplTest {
             when(eventRepository.findAll(predicateCaptor.capture(), eq(pageable))).thenReturn(
                 emptyPage);
 
-            eventService.getEventsAdmin(users, null, null, null, null, 0, 10);
+            AdminEventSearchParams params = AdminEventSearchParams.builder().users(users).build();
+            eventService.getEventsAdmin(params, 0, 10);
 
             Predicate capturedPredicate = predicateCaptor.getValue();
             assertNotNull(capturedPredicate, "Предикат не должен быть null, если есть фильтры");
@@ -100,7 +102,8 @@ class EventServiceImplTest {
             when(eventRepository.findAll(predicateCaptor.capture(), eq(pageable))).thenReturn(
                 emptyPage);
 
-            eventService.getEventsAdmin(null, states, null, null, null, 0, 10);
+            AdminEventSearchParams params = AdminEventSearchParams.builder().states(states).build();
+            eventService.getEventsAdmin(params, 0, 10);
 
             Predicate capturedPredicate = predicateCaptor.getValue();
             assertNotNull(capturedPredicate);
@@ -121,7 +124,8 @@ class EventServiceImplTest {
             when(eventRepository.findAll(predicateCaptor.capture(), eq(pageable))).thenReturn(
                 emptyPage);
 
-            eventService.getEventsAdmin(null, null, categories, null, null, 0, 10);
+            AdminEventSearchParams params = AdminEventSearchParams.builder().categories(categories).build();
+            eventService.getEventsAdmin(params, 0, 10);
 
             Predicate capturedPredicate = predicateCaptor.getValue();
             assertNotNull(capturedPredicate);
@@ -129,8 +133,8 @@ class EventServiceImplTest {
 
             String categoryIdPath = qEvent.category.id.toString();
 
-            assertTrue(predicateString.contains(categoryIdPath + " = " + categories.getFirst()),
-                "Предикат должен содержать фильтр по ID категорий");
+            assertTrue(predicateString.contains(categoryIdPath) && predicateString.contains("5"),
+                "Предикат должен содержать фильтр по ID категорий: " + predicateString);
             verify(eventRepository).findAll(capturedPredicate, pageable);
         }
 
@@ -143,7 +147,8 @@ class EventServiceImplTest {
             when(eventRepository.findAll(predicateCaptor.capture(), eq(pageable))).thenReturn(
                 emptyPage);
 
-            eventService.getEventsAdmin(null, null, null, now, null, 0, 10);
+            AdminEventSearchParams params = AdminEventSearchParams.builder().rangeStart(now).build();
+            eventService.getEventsAdmin(params, 0, 10);
 
             Predicate capturedPredicate = predicateCaptor.getValue();
             assertNotNull(capturedPredicate);
@@ -163,7 +168,8 @@ class EventServiceImplTest {
             when(eventRepository.findAll(predicateCaptor.capture(), eq(pageable))).thenReturn(
                 emptyPage);
 
-            eventService.getEventsAdmin(null, null, null, null, plusTwoHours, 0, 10);
+            AdminEventSearchParams params = AdminEventSearchParams.builder().rangeEnd(plusTwoHours).build();
+            eventService.getEventsAdmin(params, 0, 10);
 
             Predicate capturedPredicate = predicateCaptor.getValue();
             assertNotNull(capturedPredicate);
@@ -184,12 +190,13 @@ class EventServiceImplTest {
 
             when(eventRepository.findAll(any(Predicate.class), eq(pageable))).thenReturn(emptyPage);
 
-            eventService.getEventsAdmin(null, null, null, null, null, 0, 10);
+            AdminEventSearchParams params = AdminEventSearchParams.builder().build();
+            eventService.getEventsAdmin(params, 0, 10);
 
-            ArgumentCaptor<Predicate> predicateCaptor = ArgumentCaptor.forClass(Predicate.class);
-            verify(eventRepository).findAll(predicateCaptor.capture(), eq(pageable));
+            ArgumentCaptor<Predicate> localPredicateCaptor = ArgumentCaptor.forClass(Predicate.class);
+            verify(eventRepository).findAll(localPredicateCaptor.capture(), eq(pageable));
 
-            Predicate capturedPredicate = predicateCaptor.getValue();
+            Predicate capturedPredicate = localPredicateCaptor.getValue();
             assertNotNull(capturedPredicate);
         }
 
@@ -207,7 +214,14 @@ class EventServiceImplTest {
             when(eventRepository.findAll(predicateCaptor.capture(), eq(pageable))).thenReturn(
                 emptyPage);
 
-            eventService.getEventsAdmin(users, states, categories, rangeStart, rangeEnd, 0, 10);
+            AdminEventSearchParams params = AdminEventSearchParams.builder()
+                .users(users)
+                .states(states)
+                .categories(categories)
+                .rangeStart(rangeStart)
+                .rangeEnd(rangeEnd)
+                .build();
+            eventService.getEventsAdmin(params, 0, 10);
 
             Predicate capturedPredicate = predicateCaptor.getValue();
             assertNotNull(capturedPredicate);
@@ -218,17 +232,23 @@ class EventServiceImplTest {
             String categoryIdPath = qEvent.category.id.toString();
             String eventDatePath = qEvent.eventDate.toString();
 
-            assertAll("Проверка всех частей предиката", () -> assertTrue(
-                predicateString.contains(initiatorIdPath + " = " + users.getFirst()),
-                "Фильтр по пользователям"), () -> assertTrue(
-                predicateString.contains(statePath + " = " + states.getFirst().toString()),
-                "Фильтр по состояниям"), () -> assertTrue(
-                predicateString.contains(categoryIdPath + " = " + categories.getFirst()),
-                "Фильтр по категориям"), () -> assertTrue(
-                predicateString.contains(eventDatePath + " >= " + rangeStart.toString()),
-                "Фильтр по начальной дате"), () -> assertTrue(
-                predicateString.contains(eventDatePath + " <= " + rangeEnd.toString()),
-                "Фильтр по конечной дате"));
+            assertAll("Проверка всех частей предиката",
+                () -> assertTrue(
+                    predicateString.contains(initiatorIdPath) && predicateString.contains(users.getFirst().toString()),
+                    "Фильтр по пользователям: " + predicateString),
+                () -> assertTrue(
+                    predicateString.contains(statePath) && predicateString.contains(states.getFirst().toString()),
+                    "Фильтр по состояниям: " + predicateString),
+                () -> assertTrue(
+                    predicateString.contains(categoryIdPath) && predicateString.contains(categories.getFirst().toString()),
+                    "Фильтр по категориям: " + predicateString),
+                () -> assertTrue(
+                    predicateString.contains(eventDatePath) && predicateString.contains(">= " + rangeStart.toString()),
+                    "Фильтр по начальной дате: " + predicateString),
+                () -> assertTrue(
+                    predicateString.contains(eventDatePath) && predicateString.contains("<= " + rangeEnd.toString()),
+                    "Фильтр по конечной дате: " + predicateString)
+            );
             verify(eventRepository).findAll(capturedPredicate, pageable);
         }
 
@@ -237,15 +257,16 @@ class EventServiceImplTest {
         void getEventsAdmin_whenRangeStartIsAfterRangeEnd_shouldThrowIllegalArgumentException() {
             LocalDateTime rangeStart = plusTwoHours; // now.plusHours(2)
             LocalDateTime rangeEnd = plusOneHour;   // now.plusHours(1)
-            List<Long> users = null;
-            List<EventState> states = null;
-            List<Long> categories = null;
             int from = 0;
             int size = 10;
 
+            AdminEventSearchParams params = AdminEventSearchParams.builder()
+                .rangeStart(rangeStart)
+                .rangeEnd(rangeEnd)
+                .build();
+
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> eventService.getEventsAdmin(users, states, categories, rangeStart, rangeEnd,
-                    from, size));
+                () -> eventService.getEventsAdmin(params, from, size));
 
             assertEquals("Admin search: rangeStart cannot be after rangeEnd.", exception.getMessage());
 

@@ -16,6 +16,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.time.LocalDateTime;
 import java.util.List;
+import ru.practicum.explorewithme.main.service.params.AdminEventSearchParams;
 
 @RestController
 @RequestMapping("/admin/events")
@@ -58,12 +59,11 @@ public class AdminEventController {
                 "rangeStart={}, rangeEnd={}, from={}, size={}",
             users, states, categories, rangeStart, rangeEnd, from, size);
 
+        AdminEventSearchParams params = AdminEventSearchParams.builder().users(users).states(states)
+            .categories(categories).rangeStart(rangeStart).rangeEnd(rangeEnd).build();
+
         List<EventFullDto> foundEvents = eventService.getEventsAdmin(
-            users,
-            states,
-            categories,
-            rangeStart,
-            rangeEnd,
+            params,
             from,
             size
         );

@@ -1,4 +1,4 @@
-package ru.practicum.explorewithme.main.controller.admin; // Убедитесь, что пакет совпадает
+package ru.practicum.explorewithme.main.controller.admin;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -29,6 +29,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
 import ru.practicum.explorewithme.main.models.EventState;
 import ru.practicum.explorewithme.main.service.EventService;
+import ru.practicum.explorewithme.main.service.params.AdminEventSearchParams;
 
 @WebMvcTest(AdminEventController.class)
 @DisplayName("Тесты для AdminEventController")
@@ -46,16 +47,21 @@ class AdminEventControllerTest {
     @DisplayName("Поиск событий администратором: должен вернуть 200 OK и пустой список, если "
         + "событий не найдено")
     void searchEventsAdmin_whenNoEventsFound_shouldReturnOkAndEmptyList() throws Exception {
-        // Arrange
-        when(eventService.getEventsAdmin(any(), any(), any(), any(), any(), anyInt(),
+        when(eventService.getEventsAdmin(any(AdminEventSearchParams.class), anyInt(),
             anyInt())).thenReturn(Collections.emptyList());
 
-        // Act & Assert
         mockMvc.perform(get("/admin/events").param("from", "0").param("size", "10")
                 .contentType(MediaType.APPLICATION_JSON).characterEncoding(StandardCharsets.UTF_8))
             .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(0)));
 
-        verify(eventService).getEventsAdmin(null, null, null, null, null, 0, 10);
+        AdminEventSearchParams expectedParams = AdminEventSearchParams.builder()
+            .users(null)
+            .states(null)
+            .categories(null)
+            .rangeStart(null)
+            .rangeEnd(null)
+            .build();
+        verify(eventService).getEventsAdmin(eq(expectedParams), eq(0), eq(10));
     }
 
     @Test
@@ -67,7 +73,7 @@ class AdminEventControllerTest {
             .annotation("Test Annotation").eventDate(eventTime).build();
         List<EventFullDto> events = List.of(eventDto);
 
-        when(eventService.getEventsAdmin(any(), any(), any(), any(), any(), eq(0),
+        when(eventService.getEventsAdmin(any(AdminEventSearchParams.class), eq(0),
             eq(10))).thenReturn(events);
 
         mockMvc.perform(get("/admin/events").param("from", "0").param("size", "10")
@@ -75,10 +81,16 @@ class AdminEventControllerTest {
             .andExpect(jsonPath("$", hasSize(1)))
             .andExpect(jsonPath("$[0].id", is(eventDto.getId().intValue())))
             .andExpect(jsonPath("$[0].title", is(eventDto.getTitle()))).andExpect(
-                jsonPath("$[0].eventDate", is(eventTime.format(formatter)))); // Проверка формата
-        // даты
+                jsonPath("$[0].eventDate", is(eventTime.format(formatter))));
 
-        verify(eventService).getEventsAdmin(null, null, null, null, null, 0, 10);
+        AdminEventSearchParams expectedParams = AdminEventSearchParams.builder()
+            .users(null)
+            .states(null)
+            .categories(null)
+            .rangeStart(null)
+            .rangeEnd(null)
+            .build();
+        verify(eventService).getEventsAdmin(eq(expectedParams), eq(0), eq(10));
     }
 
     @Test
@@ -93,8 +105,16 @@ class AdminEventControllerTest {
         int from = 5;
         int size = 15;
 
-        when(eventService.getEventsAdmin(eq(userIds), eq(states), eq(categoryIds), eq(rangeStart),
-            eq(rangeEnd), eq(from), eq(size))).thenReturn(Collections.emptyList());
+        AdminEventSearchParams expectedSearchParams = AdminEventSearchParams.builder()
+            .users(userIds)
+            .states(states)
+            .categories(categoryIds)
+            .rangeStart(rangeStart)
+            .rangeEnd(rangeEnd)
+            .build();
+
+        when(eventService.getEventsAdmin(eq(expectedSearchParams), eq(from), eq(size)))
+            .thenReturn(Collections.emptyList());
 
         mockMvc.perform(
                 get("/admin/events").param("users", "1", "2").param("states", "PENDING",
@@ -106,21 +126,27 @@ class AdminEventControllerTest {
                     .param("size", String.valueOf(size)).contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(0)));
 
-        verify(eventService).getEventsAdmin(userIds, states, categoryIds, rangeStart, rangeEnd,
-            from, size);
+        verify(eventService).getEventsAdmin(eq(expectedSearchParams), eq(from), eq(size));
     }
 
     @Test
     @DisplayName("Поиск событий администратором: должен использовать значения по умолчанию для "
         + "from и size, если они не переданы")
     void searchEventsAdmin_withDefaultPagination_shouldUseDefaultValues() throws Exception {
-        when(eventService.getEventsAdmin(any(), any(), any(), any(), any(), eq(0),
+        when(eventService.getEventsAdmin(any(AdminEventSearchParams.class), eq(0),
             eq(10))).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/admin/events").contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk());
 
-        verify(eventService).getEventsAdmin(null, null, null, null, null, 0, 10);
+        AdminEventSearchParams expectedParams = AdminEventSearchParams.builder()
+            .users(null)
+            .states(null)
+            .categories(null)
+            .rangeStart(null)
+            .rangeEnd(null)
+            .build();
+        verify(eventService).getEventsAdmin(eq(expectedParams), eq(0), eq(10));
     }
 
     @Test
@@ -150,5 +176,6 @@ class AdminEventControllerTest {
         mockMvc.perform(get("/admin/events").param("rangeStart", "invalid-date-format")
             .param("rangeEnd", LocalDateTime.now().format(formatter)).param("from", "0")
             .param("size", "10")).andExpect(status().isBadRequest());
+        verifyNoInteractions(eventService);
     }
 }

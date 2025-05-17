@@ -21,6 +21,7 @@ import ru.practicum.explorewithme.main.repository.EventRepository;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import ru.practicum.explorewithme.main.service.params.AdminEventSearchParams;
 
 @Service
 @RequiredArgsConstructor
@@ -34,13 +35,15 @@ public class EventServiceImpl implements EventService {
     // private final CategoryRepository categoryRepository;
 
     @Override
-    public List<EventFullDto> getEventsAdmin(List<Long> users,
-        List<EventState> states,
-        List<Long> categories,
-        LocalDateTime rangeStart,
-        LocalDateTime rangeEnd,
+    public List<EventFullDto> getEventsAdmin(AdminEventSearchParams params,
         int from,
         int size) {
+
+        List<Long> users = params.getUsers();
+        List<EventState> states = params.getStates();
+        List<Long> categories = params.getCategories();
+        LocalDateTime rangeStart = params.getRangeStart();
+        LocalDateTime rangeEnd = params.getRangeEnd();
 
         log.debug("Admin search for events with params: users={}, states={}, categories={}, rangeStart={}, rangeEnd={}, from={}, size={}",
             users, states, categories, rangeStart, rangeEnd, from, size);
