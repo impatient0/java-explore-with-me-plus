@@ -31,9 +31,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import ru.practicum.explorewithme.main.mapper.EventMapper;
-import ru.practicum.explorewithme.main.models.Event;
-import ru.practicum.explorewithme.main.models.EventState;
-import ru.practicum.explorewithme.main.models.QEvent;
+import ru.practicum.explorewithme.main.model.Event;
+import ru.practicum.explorewithme.main.model.EventState;
+import ru.practicum.explorewithme.main.model.QEvent;
 import ru.practicum.explorewithme.main.repository.EventRepository;
 import ru.practicum.explorewithme.main.service.params.AdminEventSearchParams;
 

@@ -4,7 +4,7 @@ import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
-import ru.practicum.explorewithme.main.models.Event;
+import ru.practicum.explorewithme.main.model.Event;
 
 @Mapper(componentModel = "spring", uses = {CategoryMapper.class, UserMapper.class})
 public interface EventMapper {

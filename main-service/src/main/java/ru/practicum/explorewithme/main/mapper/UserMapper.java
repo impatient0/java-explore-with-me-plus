@@ -2,7 +2,7 @@ package ru.practicum.explorewithme.main.mapper;
 
 import org.mapstruct.Mapper;
 import ru.practicum.explorewithme.main.dto.UserShortDto;
-import ru.practicum.explorewithme.main.models.User;
+import ru.practicum.explorewithme.main.model.User;
 
 @Mapper(componentModel = "spring")
 public interface UserMapper {

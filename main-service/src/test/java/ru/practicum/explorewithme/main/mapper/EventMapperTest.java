@@ -21,11 +21,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import ru.practicum.explorewithme.main.dto.CategoryDto;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
 import ru.practicum.explorewithme.main.dto.UserShortDto;
-import ru.practicum.explorewithme.main.models.Category;
-import ru.practicum.explorewithme.main.models.Event;
-import ru.practicum.explorewithme.main.models.EventState;
-import ru.practicum.explorewithme.main.models.Location;
-import ru.practicum.explorewithme.main.models.User;
+import ru.practicum.explorewithme.main.model.Category;
+import ru.practicum.explorewithme.main.model.Event;
+import ru.practicum.explorewithme.main.model.EventState;
+import ru.practicum.explorewithme.main.model.Location;
+import ru.practicum.explorewithme.main.model.User;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Тесты для EventMapper")

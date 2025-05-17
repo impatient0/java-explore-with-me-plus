@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
-import ru.practicum.explorewithme.main.models.EventState;
+import ru.practicum.explorewithme.main.model.EventState;
 import ru.practicum.explorewithme.main.service.EventService;
 
 import jakarta.validation.constraints.Positive;

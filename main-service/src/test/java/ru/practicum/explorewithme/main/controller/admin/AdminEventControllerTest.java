@@ -27,7 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
-import ru.practicum.explorewithme.main.models.EventState;
+import ru.practicum.explorewithme.main.model.EventState;
 import ru.practicum.explorewithme.main.service.EventService;
 import ru.practicum.explorewithme.main.service.params.AdminEventSearchParams;
 

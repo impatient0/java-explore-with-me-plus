@@ -12,9 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
 import ru.practicum.explorewithme.main.mapper.EventMapper;
-import ru.practicum.explorewithme.main.models.Event;
-import ru.practicum.explorewithme.main.models.EventState;
-import ru.practicum.explorewithme.main.models.QEvent;
+import ru.practicum.explorewithme.main.model.Event;
+import ru.practicum.explorewithme.main.model.EventState;
+import ru.practicum.explorewithme.main.model.QEvent;
 import ru.practicum.explorewithme.main.repository.EventRepository;
 // import ru.practicum.explorewithme.main.exception.NotFoundException;
 

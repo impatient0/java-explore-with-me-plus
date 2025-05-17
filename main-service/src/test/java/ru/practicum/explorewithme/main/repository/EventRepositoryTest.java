@@ -17,7 +17,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import ru.practicum.explorewithme.main.models.*;
+import ru.practicum.explorewithme.main.model.*;
 
 import java.time.LocalDateTime;
 import java.util.List;

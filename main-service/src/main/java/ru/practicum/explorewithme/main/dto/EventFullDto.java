@@ -6,8 +6,8 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Data;
-import ru.practicum.explorewithme.main.models.EventState;
-import ru.practicum.explorewithme.main.models.Location;
+import ru.practicum.explorewithme.main.model.EventState;
+import ru.practicum.explorewithme.main.model.Location;
 
 @Data
 @Builder

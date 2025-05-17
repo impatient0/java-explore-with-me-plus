@@ -3,7 +3,7 @@ package ru.practicum.explorewithme.main.service.params;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import ru.practicum.explorewithme.main.models.EventState;
+import ru.practicum.explorewithme.main.model.EventState;
 import java.time.LocalDateTime;
 import java.util.List;
 
