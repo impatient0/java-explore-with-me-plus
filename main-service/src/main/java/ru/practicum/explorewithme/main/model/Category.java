@@ -24,7 +24,7 @@ public class Category {
     /**
      * Уникальное наименование категории.
      */
-    @Column(name = "name", nullable = false, length = 64, unique = true)
+    @Column(name = "name", nullable = false, length = 50, unique = true)
     private String name;
 
 }
