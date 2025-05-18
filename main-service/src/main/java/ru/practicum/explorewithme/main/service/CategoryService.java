@@ -1,6 +1,5 @@
 package ru.practicum.explorewithme.main.service;
 
-import jakarta.validation.Valid;
 import ru.practicum.explorewithme.main.dto.CategoryDto;
 import ru.practicum.explorewithme.main.dto.NewCategoryDto;
 
@@ -8,7 +7,7 @@ import java.util.List;
 
 public interface CategoryService {
 
-    CategoryDto createCategory( NewCategoryDto newCategoryDto);
+    CategoryDto createCategory(NewCategoryDto newCategoryDto);
 
     void deleteCategory(Long categoryId);
 
