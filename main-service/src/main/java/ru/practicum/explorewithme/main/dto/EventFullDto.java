@@ -4,13 +4,19 @@ import static ru.practicum.explorewithme.common.constants.DateTimeConstants.DATE
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import ru.practicum.explorewithme.main.model.EventState;
 import ru.practicum.explorewithme.main.model.Location;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 @Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class EventFullDto {
     private Long id;
     private String annotation;
