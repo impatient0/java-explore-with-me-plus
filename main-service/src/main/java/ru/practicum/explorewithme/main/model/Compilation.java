@@ -28,6 +28,7 @@ public class Compilation {
      * Флаг, закреплена ли подборка на главной странице.
      */
     @Column(name = "pinned", nullable = false)
+    @Builder.Default
     private boolean pinned = false;
 
     /**

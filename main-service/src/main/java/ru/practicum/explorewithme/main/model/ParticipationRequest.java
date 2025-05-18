@@ -26,6 +26,7 @@ public class ParticipationRequest {
      * Дата и время создания запроса
      */
     @Column(name = "created", nullable = false)
+    @Builder.Default
     private LocalDateTime created = LocalDateTime.now();
 
     /**

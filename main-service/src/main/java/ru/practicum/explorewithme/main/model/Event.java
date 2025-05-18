@@ -47,6 +47,7 @@ public class Event {
      * Дата и время создания события
      */
     @Column(name = "created_on", nullable = false)
+    @Builder.Default
     private LocalDateTime createdOn = LocalDateTime.now();
 
     /**
@@ -59,18 +60,21 @@ public class Event {
      * Флаг платного участия
      */
     @Column(name = "paid", nullable = false)
+    @Builder.Default
     private boolean paid = false;
 
     /**
      * Лимит участников события (0 - без ограничений)
      */
     @Column(name = "participant_limit", nullable = false)
+    @Builder.Default
     private int participantLimit = 0;
 
     /**
      * Требуется ли модерация заявок на участие
      */
     @Column(name = "request_moderation", nullable = false)
+    @Builder.Default
     private boolean requestModeration = true;
 
     /**
