@@ -54,6 +54,7 @@ public class EventServiceImpl implements EventService {
             users, states, categories, rangeStart, rangeEnd, from, size);
 
         if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
+            log.warn("Admin search: rangeStart cannot be after rangeEnd. rangeStart={}, rangeEnd={}", rangeStart, rangeEnd);
             throw new IllegalArgumentException("Admin search: rangeStart cannot be after rangeEnd.");
         }
 
@@ -100,7 +101,7 @@ public class EventServiceImpl implements EventService {
         log.debug("Fetching events for owner (user) id: {}, from: {}, size: {}", userId, from, size);
 
         if (!userRepository.existsById(userId)) {
-            throw new EntityNotFoundException("User with id=" + userId + " not found.");
+            return Collections.emptyList(); // По спецификации API, если по заданным фильтрам не найдено ни одного события, возвращается пустой список
         }
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.DESC, "eventDate"));

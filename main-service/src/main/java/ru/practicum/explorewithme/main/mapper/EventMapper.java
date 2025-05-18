@@ -1,4 +1,4 @@
-package ru.practicum.explorewithme.main.mapper; // Пример пакета
+package ru.practicum.explorewithme.main.mapper;
 
 import java.util.List;
 import org.mapstruct.Mapper;
