@@ -1,4 +1,4 @@
-package ru.practicum.explorewithme.main.dtos;
+package ru.practicum.explorewithme.main.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -8,7 +8,7 @@ import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import ru.practicum.explorewithme.main.models.Location;
+import ru.practicum.explorewithme.main.model.Location;
 
 import java.time.LocalDateTime;
 
