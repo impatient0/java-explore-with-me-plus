@@ -117,6 +117,19 @@ public class EventServiceImpl implements EventService {
         return result;
     }
 
+    @Override
+    public EventFullDto getEventPrivate(Long userId, Long eventId) {
+        log.debug("Fetching event id: {} for user id: {}", eventId, userId);
+
+        Event event = eventRepository.findByIdAndInitiatorId(eventId, userId)
+            .orElseThrow(() -> new EntityNotFoundException(
+                String.format("Event with id=%d and initiatorId=%d not found", eventId, userId)));
+
+        EventFullDto result = eventMapper.toEventFullDto(event);
+        log.debug("Found event: {}", result);
+        return result;
+    }
+
     @Transactional
     @Override
     public EventFullDto addEventPrivate(Long userId, NewEventDto newEventDto) {

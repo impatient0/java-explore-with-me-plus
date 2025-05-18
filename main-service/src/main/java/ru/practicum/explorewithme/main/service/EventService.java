@@ -15,5 +15,7 @@ public interface EventService {
 
     List<EventShortDto> getEventsByOwner(Long userId, int from, int size);
 
+    EventFullDto getEventPrivate(Long userId, Long eventId);
+
     EventFullDto addEventPrivate(Long userId, NewEventDto newEventDto);
 }
