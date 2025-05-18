@@ -13,8 +13,8 @@ import jakarta.validation.constraints.NotBlank;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class NewUserRequest {
-    @NotBlank(message = "Имя должно быть от 2 до 250 символов")
+public class NewUserRequestDto {
+    @NotBlank(message = "Имя не может быть пустым")
     @Size(min=2, max=250, message = "Имя должно быть от 2 до 250 символов")
     private String name;
 

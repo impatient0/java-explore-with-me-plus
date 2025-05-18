@@ -5,7 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
-import ru.practicum.explorewithme.main.dto.NewUserRequest;
+import ru.practicum.explorewithme.main.dto.NewUserRequestDto;
 import ru.practicum.explorewithme.main.dto.UserDto;
 import ru.practicum.explorewithme.main.dto.UserShortDto;
 import ru.practicum.explorewithme.main.model.User;
@@ -86,14 +86,14 @@ class UserMapperTest {
     }
 
     @Nested
-    @DisplayName("при преобразовании NewUserRequest в User")
+    @DisplayName("при преобразовании NewUserRequestDto в User")
     class ToUserTests {
 
         @Test
         @DisplayName("корректно маппить все поля")
         void toUser_ShouldMapAllFields() {
             // Подготовка
-            NewUserRequest request = new NewUserRequest();
+            NewUserRequestDto request = new NewUserRequestDto();
             request.setName("Тестовый пользователь");
             request.setEmail("test@example.com");
 
@@ -120,18 +120,18 @@ class UserMapperTest {
     }
 
     @Nested
-    @DisplayName("при интеграционном тестировании")
+    @DisplayName("при сквозных тестах маппинга")
     class IntegrationTests {
 
         @Test
         @DisplayName("сохранять все поля при цепочке преобразований")
         void mapper_ShouldPreserveAllFieldsInConversionChain() {
             // Подготовка
-            NewUserRequest request = new NewUserRequest();
+            NewUserRequestDto request = new NewUserRequestDto();
             request.setName("Тестовый пользователь");
             request.setEmail("test@example.com");
 
-            // Преобразование NewUserRequest -> User
+            // Преобразование NewUserRequestDto -> User
             User user = userMapper.toUser(request);
             user.setId(1L); // устанавливаем id вручную, так как он не устанавливается маппером
 
@@ -148,11 +148,11 @@ class UserMapperTest {
         @DisplayName("корректно преобразовывать в UserShortDto сохраняя нужные поля")
         void mapper_ShouldCorrectlyMapToShortDto() {
             // Подготовка
-            NewUserRequest request = new NewUserRequest();
+            NewUserRequestDto request = new NewUserRequestDto();
             request.setName("Тестовый пользователь");
             request.setEmail("test@example.com");
 
-            // Преобразование NewUserRequest -> User -> UserShortDto
+            // Преобразование NewUserRequestDto -> User -> UserShortDto
             User user = userMapper.toUser(request);
             user.setId(1L);
             UserShortDto shortDto = userMapper.toShortDto(user);
@@ -172,7 +172,7 @@ class UserMapperTest {
         @DisplayName("корректно обрабатывать пустые строки")
         void mapper_ShouldHandleEmptyStrings() {
             // Подготовка
-            NewUserRequest request = new NewUserRequest();
+            NewUserRequestDto request = new NewUserRequestDto();
             request.setName("");
             request.setEmail("");
 
@@ -192,7 +192,7 @@ class UserMapperTest {
             String specialName = "Имя с !@#$%^&*()_+";
             String specialEmail = "special!@example.com";
 
-            NewUserRequest request = new NewUserRequest();
+            NewUserRequestDto request = new NewUserRequestDto();
             request.setName(specialName);
             request.setEmail(specialEmail);
 

@@ -1,7 +1,7 @@
 package ru.practicum.explorewithme.main.mapper;
 
 import org.mapstruct.Mapper;
-import ru.practicum.explorewithme.main.dto.NewUserRequest;
+import ru.practicum.explorewithme.main.dto.NewUserRequestDto;
 import ru.practicum.explorewithme.main.dto.UserDto;
 import ru.practicum.explorewithme.main.dto.UserShortDto;
 import ru.practicum.explorewithme.main.model.User;
@@ -10,5 +10,5 @@ import ru.practicum.explorewithme.main.model.User;
 public interface UserMapper {
     UserShortDto toShortDto(User user);
     UserDto toUserDto(User user);
-    User toUser(NewUserRequest userDto);
+    User toUser(NewUserRequestDto userDto);
 }

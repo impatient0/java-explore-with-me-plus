@@ -5,7 +5,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.explorewithme.main.dto.NewUserRequest;
+import ru.practicum.explorewithme.main.dto.NewUserRequestDto;
 import ru.practicum.explorewithme.main.dto.UserDto;
 import ru.practicum.explorewithme.main.error.EntityAlreadyExistsException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
@@ -27,40 +27,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserDto createUser(NewUserRequest newUserDto) {
+    public UserDto createUser(NewUserRequestDto newUserDto) {
 
         if (userRepository.existsByEmail(newUserDto.getEmail())) {
             throw new EntityAlreadyExistsException("User", "email", newUserDto.getEmail());
         }
 
         return userMapper.toUserDto(userRepository.save(userMapper.toUser(newUserDto)));
-    }
-
-    @Override
-    @Transactional
-    public UserDto updateUser(Long userId, NewUserRequest updateUserDto) {
-
-        Optional<User> existingUser = userRepository.findById(userId);
-        User newUser = new User();
-
-        if (!existingUser.isPresent()) {
-            throw new EntityNotFoundException("User", "Id", userId);
-        } else {
-            newUser = existingUser.get();
-        }
-
-        if (updateUserDto.getEmail() != null && !updateUserDto.getEmail().equals(newUser.getEmail())) {
-            if (userRepository.existsByEmail(updateUserDto.getEmail())) {
-                throw new EntityAlreadyExistsException("User", "email", updateUserDto.getEmail());
-            }
-            newUser.setEmail(updateUserDto.getEmail());
-        }
-
-        if (updateUserDto.getName() != null) {
-            newUser.setName(updateUserDto.getName());
-        }
-
-        return userMapper.toUserDto(userRepository.save(newUser));
     }
 
     @Override

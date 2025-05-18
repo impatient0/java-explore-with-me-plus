@@ -140,22 +140,10 @@ public class GlobalExceptionHandler {
             .build();
     }
 
-    @ExceptionHandler(Throwable.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ApiError handleThrowable(final Throwable e) {
-        log.error("An unexpected error occurred: {}", e.getMessage(), e);
-        return ApiError.builder()
-            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .reason("An unexpected error occurred on the server.")
-            .message("An internal server error has occurred: " + e.getMessage())
-            .timestamp(LocalDateTime.now())
-            .build();
-    }
-
     @ExceptionHandler(EntityAlreadyExistsException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiError handleEntityAlreadyExistsException(EntityAlreadyExistsException e) {
-        log.error("Conflict data: {}", e.getMessage());
+        log.warn("Entity already exist: {}", e.getMessage());
         return ApiError.builder()
                 .status(HttpStatus.CONFLICT)
                 .reason("Requested object already exists")
@@ -166,14 +154,26 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EntityNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ApiError handleEntityNotExistException(EntityNotFoundException e) {
-        log.error("Conflict data: {}", e.getMessage());
+    public ApiError handleEntityNotFoundException(EntityNotFoundException e) {
+        log.warn("Entity not found: {}", e.getMessage());
         return ApiError.builder()
                 .status(HttpStatus.NOT_FOUND)
                 .reason("Requested object not found")
                 .message("Requested object not found"+e.getMessage())
                 .timestamp(LocalDateTime.now())
                 .build();
+    }
+
+    @ExceptionHandler(Throwable.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ApiError handleThrowable(final Throwable e) {
+        log.error("An unexpected error occurred: {}", e.getMessage(), e);
+        return ApiError.builder()
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .reason("An unexpected error occurred on the server.")
+            .message("An internal server error has occurred: " + e.getMessage())
+            .timestamp(LocalDateTime.now())
+            .build();
     }
 
     private String extractParameterName(ConstraintViolation<?> violation) {

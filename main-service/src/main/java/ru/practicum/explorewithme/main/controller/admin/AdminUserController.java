@@ -1,6 +1,6 @@
 package ru.practicum.explorewithme.main.controller.admin;
 
-import ru.practicum.explorewithme.main.dto.NewUserRequest;
+import ru.practicum.explorewithme.main.dto.NewUserRequestDto;
 import ru.practicum.explorewithme.main.dto.UserDto;
 import ru.practicum.explorewithme.main.service.UserService;
 import org.springframework.http.HttpStatus;
@@ -27,20 +27,10 @@ public class AdminUserController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public UserDto createUser(@Valid @RequestBody NewUserRequest newUserDto) {
+    public UserDto createUser(@Valid @RequestBody NewUserRequestDto newUserDto) {
         log.info("Admin: Received request to add user: {}", newUserDto);
         UserDto result = userService.createUser(newUserDto);
         log.info("Admin: Adding user: {}", result);
-        return result;
-    }
-
-    @PatchMapping("/{userId}")
-    @ResponseStatus(HttpStatus.OK)
-    public UserDto updateUser(@PathVariable Long userId,
-                              @Valid @RequestBody NewUserRequest updateUserDto) {
-        log.info("Admin: Received request to update user with Id: {}", userId);
-        UserDto result = userService.updateUser(userId, updateUserDto);
-        log.info("Admin: Update user: {}", result);
         return result;
     }
 
