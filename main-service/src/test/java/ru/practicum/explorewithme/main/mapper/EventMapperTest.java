@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -15,12 +13,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import ru.practicum.explorewithme.main.dto.CategoryDto;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
-import ru.practicum.explorewithme.main.dto.UserShortDto;
 import ru.practicum.explorewithme.main.model.Category;
 import ru.practicum.explorewithme.main.model.Event;
 import ru.practicum.explorewithme.main.model.EventState;
@@ -29,16 +26,12 @@ import ru.practicum.explorewithme.main.model.User;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Тесты для EventMapper")
+@ActiveProfiles("mapper_test")
+@SpringBootTest
 class EventMapperTest {
 
-    @Mock
-    private CategoryMapper categoryMapper;
-
-    @Mock
-    private UserMapper userMapper;
-
-    @InjectMocks
-    private EventMapperImpl eventMapper;
+    @Autowired // Внедряем экземпляр, созданный Spring и MapStruct
+    private EventMapper eventMapper;
 
     @Nested
     @DisplayName("Метод toEventFullDto (маппинг одиночного события в EventFullDto)")
@@ -67,12 +60,6 @@ class EventMapperTest {
                 .state(EventState.PUBLISHED)
                 .title("Test Event Title")
                 .build();
-
-            CategoryDto categoryDto = CategoryDto.builder().id(categoryModel.getId()).name(categoryModel.getName()).build();
-            when(categoryMapper.toDto(any(Category.class))).thenReturn(categoryDto);
-
-            UserShortDto userShortDto = UserShortDto.builder().id(initiatorModel.getId()).name(initiatorModel.getName()).build();
-            when(userMapper.toShortDto(any(User.class))).thenReturn(userShortDto);
 
             EventFullDto dto = eventMapper.toEventFullDto(event);
 
@@ -131,9 +118,6 @@ class EventMapperTest {
                 .title("Test Event Title")
                 .build();
 
-            when(categoryMapper.toDto(null)).thenReturn(null);
-            when(userMapper.toShortDto(null)).thenReturn(null);
-
             EventFullDto dto = eventMapper.toEventFullDto(event);
 
             assertNotNull(dto);
@@ -158,13 +142,6 @@ class EventMapperTest {
             Event event1 = Event.builder().id(1L).title("Event 1").category(categoryModel).initiator(initiatorModel).location(locationModel).eventDate(LocalDateTime.now()).createdOn(LocalDateTime.now()).annotation("A1").description("D1").state(EventState.PENDING).paid(false).participantLimit(10).requestModeration(false).publishedOn(null).build();
             Event event2 = Event.builder().id(2L).title("Event 2").category(categoryModel).initiator(initiatorModel).location(locationModel).eventDate(LocalDateTime.now()).createdOn(LocalDateTime.now()).annotation("A2").description("D2").state(EventState.PUBLISHED).paid(true).participantLimit(20).requestModeration(true).publishedOn(LocalDateTime.now()).build();
             List<Event> events = Arrays.asList(event1, event2);
-
-            CategoryDto categoryDto = CategoryDto.builder().id(categoryModel.getId()).name(categoryModel.getName()).build();
-            UserShortDto userShortDto = UserShortDto.builder().id(initiatorModel.getId()).name(initiatorModel.getName()).build();
-
-            // Настраиваем моки для зависимых мапперов.
-            when(categoryMapper.toDto(categoryModel)).thenReturn(categoryDto);
-            when(userMapper.toShortDto(initiatorModel)).thenReturn(userShortDto);
 
             List<EventFullDto> dtoList = eventMapper.toEventFullDtoList(events);
 
