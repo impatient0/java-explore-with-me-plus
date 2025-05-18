@@ -1,7 +1,9 @@
 package ru.practicum.explorewithme.main.service;
 
 import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.types.Predicate;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -11,19 +13,18 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
+import ru.practicum.explorewithme.main.dto.EventShortDto;
 import ru.practicum.explorewithme.main.dto.NewEventDto;
 import ru.practicum.explorewithme.main.error.BusinessRuleViolationException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.mapper.EventMapper;
-import ru.practicum.explorewithme.main.model.*;
+import ru.practicum.explorewithme.main.model.Category;
+import ru.practicum.explorewithme.main.model.Event;
+import ru.practicum.explorewithme.main.model.EventState;
 import ru.practicum.explorewithme.main.model.QEvent;
+import ru.practicum.explorewithme.main.model.User;
 import ru.practicum.explorewithme.main.repository.CategoryRepository;
 import ru.practicum.explorewithme.main.repository.EventRepository;
-
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-
 import ru.practicum.explorewithme.main.repository.UserRepository;
 import ru.practicum.explorewithme.main.service.params.AdminEventSearchParams;
 
@@ -81,8 +82,6 @@ public class EventServiceImpl implements EventService {
             predicate.and(qEvent.eventDate.loe(rangeEnd)); // lower or equal
         }
 
-        Predicate finalPredicate = predicate.getValue();
-
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.ASC, "id"));
 
         Page<Event> eventPage = eventRepository.findAll(predicate, pageable);
@@ -93,6 +92,27 @@ public class EventServiceImpl implements EventService {
 
         List<EventFullDto> result = eventMapper.toEventFullDtoList(eventPage.getContent());
         log.debug("Admin search found {} events on page {}/{}", result.size(), pageable.getPageNumber(), eventPage.getTotalPages());
+        return result;
+    }
+
+    @Override
+    public List<EventShortDto> getEventsByOwner(Long userId, int from, int size) {
+        log.debug("Fetching events for owner (user) id: {}, from: {}, size: {}", userId, from, size);
+
+        if (!userRepository.existsById(userId)) {
+            throw new EntityNotFoundException("User with id=" + userId + " not found.");
+        }
+
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.DESC, "eventDate"));
+
+        Page<Event> eventPage = eventRepository.findByInitiatorId(userId, pageable);
+
+        if (eventPage.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<EventShortDto> result = eventMapper.toEventShortDtoList(eventPage.getContent());
+        log.debug("Found {} events for owner id: {} on page {}/{}", result.size(), userId, pageable.getPageNumber(), eventPage.getTotalPages());
         return result;
     }
 
