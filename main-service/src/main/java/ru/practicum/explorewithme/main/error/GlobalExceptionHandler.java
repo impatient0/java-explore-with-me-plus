@@ -147,7 +147,7 @@ public class GlobalExceptionHandler {
         return ApiError.builder()
                 .status(HttpStatus.CONFLICT)
                 .reason("Requested object already exists")
-                .message("Requested object already exists"+e.getMessage())
+                .message("Requested object already exists" + e.getMessage())
                 .timestamp(LocalDateTime.now())
                 .build();
     }
@@ -159,7 +159,7 @@ public class GlobalExceptionHandler {
         return ApiError.builder()
                 .status(HttpStatus.NOT_FOUND)
                 .reason("Requested object not found")
-                .message("Requested object not found"+e.getMessage())
+                .message("Requested object not found" + e.getMessage())
                 .timestamp(LocalDateTime.now())
                 .build();
     }

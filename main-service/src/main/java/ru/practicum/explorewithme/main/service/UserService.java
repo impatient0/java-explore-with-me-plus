@@ -7,8 +7,11 @@ import ru.practicum.explorewithme.main.service.params.GetListUsersParameters;
 import java.util.List;
 
 public interface UserService {
-    UserDto createUser(NewUserRequestDto newUserDto);
-    void deleteUser(Long userId);
-    List<UserDto> getUsers(GetListUsersParameters parameters);
-}
 
+    UserDto createUser(NewUserRequestDto newUserDto);
+
+    void deleteUser(Long userId);
+
+    List<UserDto> getUsers(GetListUsersParameters parameters);
+
+}

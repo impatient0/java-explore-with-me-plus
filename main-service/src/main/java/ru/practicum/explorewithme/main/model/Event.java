@@ -114,6 +114,7 @@ public class Event {
      *  Список подборок, в которых присутствует событие (создано для корректной обратной выборки)
      */
     @ManyToMany(mappedBy = "events")
+    @Builder.Default
     private Set<Compilation> compilations = new HashSet<>();
 
 }
