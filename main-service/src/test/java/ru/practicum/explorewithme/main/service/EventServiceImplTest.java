@@ -7,18 +7,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.never; // Добавлен импорт
-import static org.mockito.Mockito.times; // Добавлен импорт
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.querydsl.core.types.Predicate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit; // Для более точного сравнения времени
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional; // Добавлен импорт
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,15 +32,15 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import ru.practicum.explorewithme.main.dto.EventFullDto; // Добавлен импорт
-import ru.practicum.explorewithme.main.dto.NewEventDto;   // Добавлен импорт
-import ru.practicum.explorewithme.main.error.BusinessRuleViolationException; // Предполагаем, что вы создали это исключение
-import ru.practicum.explorewithme.main.error.EntityNotFoundException;       // Добавлен импорт
+import ru.practicum.explorewithme.main.dto.EventFullDto;
+import ru.practicum.explorewithme.main.dto.NewEventDto;
+import ru.practicum.explorewithme.main.error.BusinessRuleViolationException;
+import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.mapper.EventMapper;
-import ru.practicum.explorewithme.main.model.*; // Импортируем все модели для удобства
-import ru.practicum.explorewithme.main.repository.CategoryRepository; // Добавлен импорт
+import ru.practicum.explorewithme.main.model.*;
+import ru.practicum.explorewithme.main.repository.CategoryRepository;
 import ru.practicum.explorewithme.main.repository.EventRepository;
-import ru.practicum.explorewithme.main.repository.UserRepository;   // Добавлен импорт
+import ru.practicum.explorewithme.main.repository.UserRepository;
 import ru.practicum.explorewithme.main.service.params.AdminEventSearchParams;
 
 @ExtendWith(MockitoExtension.class)
@@ -98,7 +96,7 @@ class EventServiceImplTest {
             .annotation("New Event Annotation")
             .category(testCategory.getId())
             .description("New Event Description")
-            .eventDate(plusThreeHours) // Валидная дата
+            .eventDate(plusThreeHours)
             .location(Location.builder().lat(10f).lon(20f).build())
             .paid(false)
             .participantLimit(0L)
@@ -108,7 +106,7 @@ class EventServiceImplTest {
 
         mappedEventFromDto = Event.builder()
             .annotation(newEventDto.getAnnotation())
-            .category(Category.builder().id(newEventDto.getCategory()).build()) // Маппер вызовет CategoryMapper.fromId
+            .category(Category.builder().id(newEventDto.getCategory()).build())
             .description(newEventDto.getDescription())
             .eventDate(newEventDto.getEventDate())
             .location(newEventDto.getLocation())

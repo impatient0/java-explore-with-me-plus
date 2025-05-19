@@ -11,5 +11,6 @@ public interface EventService {
         int from,
         int size
     );
+
     EventFullDto addEventPrivate(Long userId, NewEventDto newEventDto);
 }
