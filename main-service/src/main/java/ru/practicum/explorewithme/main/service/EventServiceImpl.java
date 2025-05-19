@@ -11,16 +11,20 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
+import ru.practicum.explorewithme.main.dto.NewEventDto;
+import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.mapper.EventMapper;
-import ru.practicum.explorewithme.main.model.Event;
-import ru.practicum.explorewithme.main.model.EventState;
+import ru.practicum.explorewithme.main.model.*;
 import ru.practicum.explorewithme.main.model.QEvent;
+import ru.practicum.explorewithme.main.repository.CategoryRepository;
 import ru.practicum.explorewithme.main.repository.EventRepository;
-// import ru.practicum.explorewithme.main.exception.NotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+
+import ru.practicum.explorewithme.main.repository.UserRepository;
 import ru.practicum.explorewithme.main.service.params.AdminEventSearchParams;
 
 @Service
@@ -31,8 +35,8 @@ public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
-    // private final UserRepository userRepository;
-    // private final CategoryRepository categoryRepository;
+    private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository;
 
     @Override
     public List<EventFullDto> getEventsAdmin(AdminEventSearchParams params,
@@ -92,4 +96,23 @@ public class EventServiceImpl implements EventService {
         return result;
     }
 
+    @Override
+    public EventFullDto addEventPrivate(Long userId, NewEventDto newEventDto) {
+        log.info("Добавление события {} пользователем {}", newEventDto, userId);
+        User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("Пользователь " +
+                "с id = " + userId + " не найден"));
+        Long categoryId = newEventDto.getCategory();
+        Category category = categoryRepository.findById(categoryId).orElseThrow(() -> new EntityNotFoundException("Категория " +
+                "с id = " + categoryId + " не найдена"));
+        LocalDateTime eventDate = newEventDto.getEventDate();
+        if (eventDate.isBefore(LocalDateTime.now().plusHours(2))) {
+            throw new IllegalArgumentException("Дата должна быть не ранее, чем через 2 часа от текущего момента");
+        }
+
+        //Location location = newEventDto.getLocation();
+
+        Event event = eventMapper.toEvent(newEventDto);
+        event.setInitiator(user);
+        return eventMapper.toEventFullDto(eventRepository.save(event));
+    }
 }
