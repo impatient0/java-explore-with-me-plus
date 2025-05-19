@@ -95,20 +95,23 @@ public class EventServiceImpl implements EventService {
         return result;
     }
 
+    @Transactional
     @Override
     public EventFullDto addEventPrivate(Long userId, NewEventDto newEventDto) {
+
         log.info("Добавление события {} пользователем {}", newEventDto, userId);
+
         User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("Пользователь " +
                 "с id = " + userId + " не найден"));
+
         Long categoryId = newEventDto.getCategory();
         Category category = categoryRepository.findById(categoryId).orElseThrow(() -> new EntityNotFoundException("Категория " +
                 "с id = " + categoryId + " не найдена"));
+
         LocalDateTime eventDate = newEventDto.getEventDate();
         if (eventDate.isBefore(LocalDateTime.now().plusHours(2))) {
             throw new IllegalArgumentException("Дата должна быть не ранее, чем через 2 часа от текущего момента");
         }
-
-        //Location location = newEventDto.getLocation();
 
         Event event = eventMapper.toEvent(newEventDto);
         event.setInitiator(user);
