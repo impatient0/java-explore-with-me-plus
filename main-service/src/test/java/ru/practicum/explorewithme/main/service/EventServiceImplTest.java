@@ -379,9 +379,8 @@ class EventServiceImplTest {
             Long nonExistentUserId = 999L;
             when(userRepository.findById(nonExistentUserId)).thenReturn(Optional.empty());
 
-            EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
-                eventService.addEventPrivate(nonExistentUserId, newEventDto);
-            });
+            EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> eventService.addEventPrivate(nonExistentUserId, newEventDto));
 
             assertTrue(exception.getMessage().contains("Пользователь"));
             assertTrue(exception.getMessage().contains(nonExistentUserId.toString()));
@@ -402,9 +401,8 @@ class EventServiceImplTest {
             when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
             when(categoryRepository.findById(nonExistentCategoryId)).thenReturn(Optional.empty());
 
-            EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
-                eventService.addEventPrivate(testUser.getId(), dtoWithNonExistentCategory);
-            });
+            EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> eventService.addEventPrivate(testUser.getId(), dtoWithNonExistentCategory));
 
             assertTrue(exception.getMessage().contains("Категория"));
             assertTrue(exception.getMessage().contains(nonExistentCategoryId.toString()));
@@ -426,9 +424,9 @@ class EventServiceImplTest {
             when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
             when(categoryRepository.findById(testCategory.getId())).thenReturn(Optional.of(testCategory));
 
-            BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class, () -> {
-                eventService.addEventPrivate(testUser.getId(), dtoWithEarlyDate);
-            });
+            BusinessRuleViolationException exception = assertThrows(
+                BusinessRuleViolationException.class,
+                () -> eventService.addEventPrivate(testUser.getId(), dtoWithEarlyDate));
             assertTrue(exception.getMessage().contains("должна быть не ранее, чем через 2 часа"));
 
             verify(userRepository).findById(testUser.getId());
