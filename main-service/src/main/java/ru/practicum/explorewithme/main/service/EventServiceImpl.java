@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
 import ru.practicum.explorewithme.main.dto.NewEventDto;
+import ru.practicum.explorewithme.main.error.BusinessRuleViolationException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.mapper.EventMapper;
 import ru.practicum.explorewithme.main.model.*;
@@ -110,7 +111,7 @@ public class EventServiceImpl implements EventService {
 
         LocalDateTime eventDate = newEventDto.getEventDate();
         if (eventDate.isBefore(LocalDateTime.now().plusHours(2))) {
-            throw new IllegalArgumentException("Дата должна быть не ранее, чем через 2 часа от текущего момента");
+            throw new BusinessRuleViolationException("Дата должна быть не ранее, чем через 2 часа от текущего момента");
         }
 
         Event event = eventMapper.toEvent(newEventDto);
