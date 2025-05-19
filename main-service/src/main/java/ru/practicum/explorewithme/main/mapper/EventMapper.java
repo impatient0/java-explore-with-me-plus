@@ -21,7 +21,6 @@ public interface EventMapper {
     @Mapping(target = "compilations", ignore = true)
     @Mapping(target = "initiator", ignore = true)
     @Mapping(source = "category", target = "category")
-    @Mapping(target = "createdOn", expression = "java(java.time.LocalDateTime.now())")
     @Mapping(target = "state", expression = "java(ru.practicum.explorewithme.main.model.EventState.PENDING)")
     Event toEvent(NewEventDto newEventDto);
 
