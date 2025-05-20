@@ -1,4 +1,4 @@
-package ru.practicum.explorewithme.main.controller.private_events;
+package ru.practicum.explorewithme.main.controller.priv;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
