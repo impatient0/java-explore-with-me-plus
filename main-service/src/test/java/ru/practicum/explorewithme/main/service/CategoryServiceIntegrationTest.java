@@ -12,11 +12,18 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.practicum.explorewithme.main.dto.CategoryDto;
 import ru.practicum.explorewithme.main.dto.NewCategoryDto;
+import ru.practicum.explorewithme.main.dto.NewUserRequestDto;
+import ru.practicum.explorewithme.main.dto.UserDto;
+import ru.practicum.explorewithme.main.error.EntityAlreadyExistsException;
+import ru.practicum.explorewithme.main.error.EntityDeletedException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
-import ru.practicum.explorewithme.main.model.Category;
+import ru.practicum.explorewithme.main.mapper.UserMapper;
+import ru.practicum.explorewithme.main.model.*;
 import ru.practicum.explorewithme.main.repository.CategoryRepository;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import ru.practicum.explorewithme.main.repository.EventRepository;
+import ru.practicum.explorewithme.main.repository.UserRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CategoryServiceIntegrationTest {
 
     @Container
-    static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:16")
+    static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:16.1")
             .withDatabaseName("explorewithme_test")
             .withUsername("test")
             .withPassword("test");
@@ -49,6 +56,15 @@ class CategoryServiceIntegrationTest {
 
     @Autowired
     private CategoryRepository categoryRepository;
+
+    @Autowired
+    private EventRepository eventRepository;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private UserMapper userMapper;
 
     private NewCategoryDto newCategoryDto;
     private NewCategoryDto anotherCategoryDto;
@@ -71,18 +87,34 @@ class CategoryServiceIntegrationTest {
         @Test
         @DisplayName("Успешное создание категории")
         void createCategory_Success() {
-            // Действие
+
             CategoryDto createdCategory = categoryService.createCategory(newCategoryDto);
 
-            // Проверка
             assertNotNull(createdCategory);
             assertNotNull(createdCategory.getId());
             assertEquals(newCategoryDto.getName(), createdCategory.getName());
 
-            // Проверка наличия в БД
             Optional<Category> categoryFromDb = categoryRepository.findById(createdCategory.getId());
             assertTrue(categoryFromDb.isPresent());
             assertEquals(newCategoryDto.getName(), categoryFromDb.get().getName());
+        }
+
+        @Test
+        @DisplayName("Исключение при создании категории с уже существующим именем")
+        void createCategory_WithExistingName_ThrowsException() {
+
+            CategoryDto createdCategory = categoryService.createCategory(newCategoryDto);
+            assertNotNull(createdCategory);
+
+            NewCategoryDto duplicateCategoryDto = new NewCategoryDto();
+            duplicateCategoryDto.setName(newCategoryDto.getName());
+
+            EntityAlreadyExistsException exception = assertThrows(EntityAlreadyExistsException.class, () -> {
+                categoryService.createCategory(duplicateCategoryDto);
+            });
+
+            assertTrue(exception.getMessage().contains("Category"));
+            assertTrue(exception.getMessage().contains(duplicateCategoryDto.getName()));
         }
 
     }
@@ -94,21 +126,18 @@ class CategoryServiceIntegrationTest {
         @Test
         @DisplayName("Успешное обновление категории")
         void updateCategory_Success() {
-            // Подготовка
+
             CategoryDto createdCategory = categoryService.createCategory(newCategoryDto);
 
             NewCategoryDto updateDto = new NewCategoryDto();
             updateDto.setName("Обновленная категория");
 
-            // Действие
             CategoryDto updatedCategory = categoryService.updateCategory(createdCategory.getId(), updateDto);
 
-            // Проверка
             assertNotNull(updatedCategory);
             assertEquals(createdCategory.getId(), updatedCategory.getId());
             assertEquals(updateDto.getName(), updatedCategory.getName());
 
-            // Проверка в БД
             Optional<Category> categoryFromDb = categoryRepository.findById(createdCategory.getId());
             assertTrue(categoryFromDb.isPresent());
             assertEquals(updateDto.getName(), categoryFromDb.get().getName());
@@ -117,15 +146,13 @@ class CategoryServiceIntegrationTest {
         @Test
         @DisplayName("Исключение при обновлении несуществующей категории")
         void updateCategory_CategoryNotFound_ThrowsException() {
-            // Подготовка
+
             Long nonExistentCategoryId = 999L;
 
-            // Проверка исключения при обновлении несуществующей категории
             EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
                 categoryService.updateCategory(nonExistentCategoryId, newCategoryDto);
             });
 
-            // Проверка сообщения об ошибке
             assertTrue(exception.getMessage().contains("Category"));
             assertTrue(exception.getMessage().contains(nonExistentCategoryId.toString()));
         }
@@ -133,18 +160,55 @@ class CategoryServiceIntegrationTest {
         @Test
         @DisplayName("Обновление категории с пустым именем не меняет существующее значение")
         void updateCategory_WithBlankName_PreservesExistingName() {
-            // Подготовка
+
             CategoryDto createdCategory = categoryService.createCategory(newCategoryDto);
 
             NewCategoryDto updateDto = new NewCategoryDto();
             updateDto.setName(""); // Пустое имя
 
-            // Действие
             CategoryDto updatedCategory = categoryService.updateCategory(createdCategory.getId(), updateDto);
 
-            // Проверка - имя должно остаться прежним
             assertEquals(newCategoryDto.getName(), updatedCategory.getName());
         }
+
+        @Test
+        @DisplayName("Обновление категории с тем же самым именем не вызывает ошибок")
+        void updateCategory_WithSameName_Success() {
+
+            CategoryDto createdCategory = categoryService.createCategory(newCategoryDto);
+
+            NewCategoryDto updateDto = new NewCategoryDto();
+            updateDto.setName(createdCategory.getName());
+
+            CategoryDto updatedCategory = categoryService.updateCategory(createdCategory.getId(), updateDto);
+
+            assertNotNull(updatedCategory);
+            assertEquals(createdCategory.getId(), updatedCategory.getId());
+            assertEquals(createdCategory.getName(), updatedCategory.getName());
+
+            Optional<Category> categoryFromDb = categoryRepository.findById(createdCategory.getId());
+            assertTrue(categoryFromDb.isPresent());
+            assertEquals(createdCategory.getName(), categoryFromDb.get().getName());
+        }
+
+        @Test
+        @DisplayName("Исключение при обновлении категории с именем, которое уже существует")
+        void updateCategory_WithExistingName_ThrowsException() {
+
+            CategoryDto firstCategory = categoryService.createCategory(newCategoryDto);
+            CategoryDto secondCategory = categoryService.createCategory(anotherCategoryDto);
+
+            NewCategoryDto updateDto = new NewCategoryDto();
+            updateDto.setName(secondCategory.getName());
+
+            EntityAlreadyExistsException exception = assertThrows(EntityAlreadyExistsException.class, () -> {
+                categoryService.updateCategory(firstCategory.getId(), updateDto);
+            });
+
+            assertTrue(exception.getMessage().contains("Category"));
+            assertTrue(exception.getMessage().contains(updateDto.getName()));
+        }
+
     }
 
     @Nested
@@ -154,34 +218,63 @@ class CategoryServiceIntegrationTest {
         @Test
         @DisplayName("Успешное удаление категории")
         void deleteCategory_Success() {
-            // Подготовка
+
             CategoryDto createdCategory = categoryService.createCategory(newCategoryDto);
 
-            // Проверка наличия в БД перед удалением
             assertTrue(categoryRepository.existsById(createdCategory.getId()));
 
-            // Действие
             categoryService.deleteCategory(createdCategory.getId());
 
-            // Проверка отсутствия в БД после удаления
             assertFalse(categoryRepository.existsById(createdCategory.getId()));
         }
 
         @Test
         @DisplayName("Исключение при удалении несуществующей категории")
         void deleteCategory_CategoryNotFound_ThrowsException() {
-            // Подготовка
+
             Long nonExistentCategoryId = 999L;
 
-            // Проверка исключения при удалении несуществующей категории
             EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
                 categoryService.deleteCategory(nonExistentCategoryId);
             });
 
-            // Проверка сообщения об ошибке
             assertTrue(exception.getMessage().contains("Category"));
             assertTrue(exception.getMessage().contains(nonExistentCategoryId.toString()));
         }
+
+        @Test
+        @DisplayName("Исключение при удалении категории, содержащей события")
+        void deleteCategory_WithEvents_ThrowsException() {
+
+            CategoryDto createdCategory = categoryService.createCategory(newCategoryDto);
+            assertNotNull(createdCategory);
+
+            User user = userMapper.toUser(userService
+                    .createUser( new NewUserRequestDto( "Test name", "Test email")));
+
+            Event event = Event.builder()
+                    .annotation("Test annotation")
+                    .createdOn(java.time.LocalDateTime.now())
+                    .category(new Category(createdCategory.getId(), createdCategory.getName()))
+                    .description("Test description")
+                    .eventDate(java.time.LocalDateTime.now())
+                    .initiator(user)
+                    .location( new Location(5555.55F, 5555.555F))
+                    .title("Test title")
+                    .publishedOn(java.time.LocalDateTime.now())
+                    .state( EventState.PENDING)
+                    .build();
+
+            eventRepository.save(event);
+
+            EntityDeletedException exception = assertThrows(EntityDeletedException.class, () -> {
+                categoryService.deleteCategory(createdCategory.getId());
+            });
+
+            assertTrue(exception.getMessage().contains("Category"));
+            assertTrue(exception.getMessage().contains(createdCategory.getId().toString()));
+        }
+
     }
 
     @Nested
@@ -191,18 +284,15 @@ class CategoryServiceIntegrationTest {
         @Test
         @DisplayName("Получение всех категорий")
         void getAllCategories_ReturnsAllCategories() {
-            // Подготовка
+
             CategoryDto category1 = categoryService.createCategory(newCategoryDto);
             CategoryDto category2 = categoryService.createCategory(anotherCategoryDto);
 
-            // Действие
             List<CategoryDto> categories = categoryService.getAllCategories(0, 10);
 
-            // Проверка
             assertNotNull(categories);
             assertEquals(2, categories.size());
 
-            // Проверка, что обе созданные категории присутствуют в результате
             List<Long> categoryIds = categories.stream()
                     .map(CategoryDto::getId)
                     .collect(Collectors.toList());
@@ -213,7 +303,7 @@ class CategoryServiceIntegrationTest {
         @Test
         @DisplayName("Корректная работа пагинации при получении категорий")
         void getAllCategories_Pagination_ReturnsCorrectPage() {
-            // Подготовка - создаем 5 категорий
+
             List<CategoryDto> createdCategories = IntStream.range(0, 5)
                     .mapToObj(i -> {
                         NewCategoryDto request = new NewCategoryDto();
@@ -222,21 +312,16 @@ class CategoryServiceIntegrationTest {
                     })
                     .collect(Collectors.toList());
 
-            // Запрашиваем первую страницу с размером 2
             List<CategoryDto> page1 = categoryService.getAllCategories(0, 2);
 
-            // Запрашиваем вторую страницу с размером 2
             List<CategoryDto> page2 = categoryService.getAllCategories(2, 2);
 
-            // Запрашиваем третью страницу с размером 2
             List<CategoryDto> page3 = categoryService.getAllCategories(4, 2);
 
-            // Проверка
             assertEquals(2, page1.size());
             assertEquals(2, page2.size());
             assertEquals(1, page3.size());
 
-            // Проверяем, что категории на страницах разные
             List<Long> allCategoryIds = new java.util.ArrayList<>();
             allCategoryIds.addAll(page1.stream().map(CategoryDto::getId).collect(Collectors.toList()));
             allCategoryIds.addAll(page2.stream().map(CategoryDto::getId).collect(Collectors.toList()));
@@ -249,12 +334,29 @@ class CategoryServiceIntegrationTest {
         @Test
         @DisplayName("Получение пустого списка при отсутствии категорий")
         void getAllCategories_EmptyRepository_ReturnsEmptyList() {
-            // Действие
+
             List<CategoryDto> categories = categoryService.getAllCategories(0, 10);
 
-            // Проверка
             assertNotNull(categories);
             assertTrue(categories.isEmpty());
+        }
+
+        @Test
+        @DisplayName("Исключение при создании категории с уже существующим именем")
+        void createCategory_WithExistingName_ThrowsException() {
+
+            CategoryDto createdCategory = categoryService.createCategory(newCategoryDto);
+            assertNotNull(createdCategory);
+
+            NewCategoryDto duplicateCategoryDto = new NewCategoryDto();
+            duplicateCategoryDto.setName(newCategoryDto.getName());
+
+            EntityAlreadyExistsException exception = assertThrows(EntityAlreadyExistsException.class, () -> {
+                categoryService.createCategory(duplicateCategoryDto);
+            });
+
+            assertTrue(exception.getMessage().contains("Category"));
+            assertTrue(exception.getMessage().contains(duplicateCategoryDto.getName()));
         }
     }
 
@@ -265,13 +367,11 @@ class CategoryServiceIntegrationTest {
         @Test
         @DisplayName("Успешное получение категории по ID")
         void getCategoryById_Success() {
-            // Подготовка
+
             CategoryDto createdCategory = categoryService.createCategory(newCategoryDto);
 
-            // Действие
             CategoryDto retrievedCategory = categoryService.getCategoryById(createdCategory.getId());
 
-            // Проверка
             assertNotNull(retrievedCategory);
             assertEquals(createdCategory.getId(), retrievedCategory.getId());
             assertEquals(createdCategory.getName(), retrievedCategory.getName());
@@ -280,15 +380,13 @@ class CategoryServiceIntegrationTest {
         @Test
         @DisplayName("Исключение при запросе несуществующей категории")
         void getCategoryById_CategoryNotFound_ThrowsException() {
-            // Подготовка
+
             Long nonExistentCategoryId = 999L;
 
-            // Проверка исключения при запросе несуществующей категории
             EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
                 categoryService.getCategoryById(nonExistentCategoryId);
             });
 
-            // Проверка сообщения об ошибке
             assertTrue(exception.getMessage().contains("Category"));
             assertTrue(exception.getMessage().contains(nonExistentCategoryId.toString()));
         }
@@ -301,23 +399,20 @@ class CategoryServiceIntegrationTest {
         @Test
         @DisplayName("Эффективная работа с большим количеством данных")
         void getAllCategories_WithLargeDataset_PerformsEfficiently() {
-            // Создаем 100 категорий
+
             for (int i = 0; i < 100; i++) {
                 NewCategoryDto request = new NewCategoryDto();
                 request.setName("Category " + i);
                 categoryService.createCategory(request);
             }
 
-            // Замеряем время выполнения запроса
             long startTime = System.currentTimeMillis();
             List<CategoryDto> categories = categoryService.getAllCategories(0, 50);
             long endTime = System.currentTimeMillis();
 
-            // Проверяем результаты
             assertEquals(50, categories.size());
             assertTrue((endTime - startTime) < 1000); // Ожидаем выполнение менее чем за секунду
 
-            // Логгирование для информации
             System.out.println("Время выполнения запроса для 50 категорий из 100: " + (endTime - startTime) + " мс");
         }
     }
@@ -329,7 +424,7 @@ class CategoryServiceIntegrationTest {
         @Test
         @DisplayName("Корректная обработка запроса страницы за пределами допустимого диапазона")
         void getAllCategories_PageOutOfRange_ReturnsEmptyList() {
-            // Подготовка - создаем 3 категории
+
             IntStream.range(0, 3)
                     .forEach(i -> {
                         NewCategoryDto request = new NewCategoryDto();
@@ -337,10 +432,8 @@ class CategoryServiceIntegrationTest {
                         categoryService.createCategory(request);
                     });
 
-            // Запрашиваем страницу, которая находится за пределами доступных данных
             List<CategoryDto> result = categoryService.getAllCategories(10, 5);
 
-            // Проверка
             assertNotNull(result);
             assertTrue(result.isEmpty());
         }

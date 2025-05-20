@@ -94,7 +94,6 @@ class AdminUserControllerTest {
         @DisplayName("возвращать 400 при создании пользователя с невалидными данными")
         void createUser_WithInvalidData_ReturnsBadRequest() throws Exception {
             NewUserRequestDto invalidRequest = new NewUserRequestDto();
-            // Email и имя не заданы
 
             mockMvc.perform(post("/admin/users")
                             .contentType(MediaType.APPLICATION_JSON)

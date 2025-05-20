@@ -6,4 +6,6 @@ import ru.practicum.explorewithme.main.model.Event;
 
 public interface EventRepository extends JpaRepository<Event, Long>, QuerydslPredicateExecutor<Event> {
 
+    boolean existsByCategoryId(Long categoryId);
+
 }

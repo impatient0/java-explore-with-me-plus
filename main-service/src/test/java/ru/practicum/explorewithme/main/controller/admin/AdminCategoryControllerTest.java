@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.explorewithme.main.dto.CategoryDto;
 import ru.practicum.explorewithme.main.dto.NewCategoryDto;
+import ru.practicum.explorewithme.main.error.EntityDeletedException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.service.CategoryService;
 
@@ -21,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import ru.practicum.explorewithme.main.error.EntityAlreadyExistsException;
 
 @WebMvcTest(AdminCategoryController.class)
 @DisplayName("Контроллер администрирования категорий должен")
@@ -71,7 +73,6 @@ class AdminCategoryControllerTest {
         @DisplayName("возвращать 400 при создании категории с невалидными данными")
         void createCategory_WithInvalidData_ReturnsBadRequest() throws Exception {
             NewCategoryDto invalidRequest = new NewCategoryDto();
-            // Имя не задано
 
             mockMvc.perform(post("/admin/categories")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -95,6 +96,23 @@ class AdminCategoryControllerTest {
 
             verify(categoryService, times(1)).createCategory(any());
         }
+
+        @Test
+        @DisplayName("возвращать 409 при попытке создания уже существующей категории")
+        void createCategory_WithExistingName_ReturnsConflict() throws Exception {
+            when(categoryService.createCategory(any(NewCategoryDto.class)))
+                    .thenThrow(new EntityAlreadyExistsException("Category", "name", newCategoryDto.getName()));
+
+            mockMvc.perform(post("/admin/categories")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(newCategoryDto)))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.message", notNullValue()))
+                    .andExpect(jsonPath("$.reason", containsString("already exists")));
+
+            verify(categoryService, times(1)).createCategory(any(NewCategoryDto.class));
+        }
+
     }
 
     @Nested
@@ -176,6 +194,21 @@ class AdminCategoryControllerTest {
 
             verify(categoryService, times(1)).deleteCategory(999L);
         }
+
+        @Test
+        @DisplayName("возвращать 409 при удалении категории, содержащей события")
+        void deleteCategory_WithEvents_ReturnsConflict() throws Exception {
+            doThrow(new EntityDeletedException("Category", "Id", 1L))
+                    .when(categoryService).deleteCategory(1L);
+
+            mockMvc.perform(delete("/admin/categories/1"))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.message", notNullValue()))
+                    .andExpect(jsonPath("$.reason", containsString("Restriction")));
+
+            verify(categoryService, times(1)).deleteCategory(1L);
+        }
+
     }
 
     @Nested

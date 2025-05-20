@@ -17,4 +17,6 @@ public interface UserMapper {
     @Mapping(target = "id", ignore = true)
     User toUser(NewUserRequestDto newUserDto);
 
+    User toUser(UserDto userDto);
+
 }

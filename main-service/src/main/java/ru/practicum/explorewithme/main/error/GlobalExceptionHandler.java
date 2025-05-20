@@ -164,6 +164,18 @@ public class GlobalExceptionHandler {
                 .build();
     }
 
+    @ExceptionHandler(EntityDeletedException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ApiError handleEntityDeletedException(EntityDeletedException e) {
+        log.warn("Entity restriction of removal - not empty");
+        return ApiError.builder()
+                .status(HttpStatus.NOT_FOUND)
+                .reason("Restriction of removal")
+                .message("Restriction of removal" + e.getMessage())
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
     @ExceptionHandler(Throwable.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiError handleThrowable(final Throwable e) {
