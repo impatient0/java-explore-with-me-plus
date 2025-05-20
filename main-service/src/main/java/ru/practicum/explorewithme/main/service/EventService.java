@@ -3,6 +3,7 @@ package ru.practicum.explorewithme.main.service;
 import java.util.List;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
 import ru.practicum.explorewithme.main.dto.EventShortDto;
+import ru.practicum.explorewithme.main.dto.UpdateEventUserRequestDto;
 import ru.practicum.explorewithme.main.service.params.AdminEventSearchParams;
 import ru.practicum.explorewithme.main.dto.NewEventDto;
 
@@ -18,4 +19,6 @@ public interface EventService {
     EventFullDto getEventPrivate(Long userId, Long eventId);
 
     EventFullDto addEventPrivate(Long userId, NewEventDto newEventDto);
+
+    EventFullDto updateEventByOwner(Long userId, Long eventId, UpdateEventUserRequestDto requestDto);
 }

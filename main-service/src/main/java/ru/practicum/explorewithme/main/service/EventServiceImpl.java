@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
 import ru.practicum.explorewithme.main.dto.EventShortDto;
 import ru.practicum.explorewithme.main.dto.NewEventDto;
+import ru.practicum.explorewithme.main.dto.UpdateEventUserRequestDto;
 import ru.practicum.explorewithme.main.error.BusinessRuleViolationException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.mapper.EventMapper;
@@ -30,7 +31,7 @@ import ru.practicum.explorewithme.main.service.params.AdminEventSearchParams;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 @Slf4j
 public class EventServiceImpl implements EventService {
 
@@ -40,6 +41,7 @@ public class EventServiceImpl implements EventService {
     private final CategoryRepository categoryRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<EventFullDto> getEventsAdmin(AdminEventSearchParams params,
         int from,
         int size) {
@@ -97,6 +99,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EventShortDto> getEventsByOwner(Long userId, int from, int size) {
         log.debug("Fetching events for owner (user) id: {}, from: {}, size: {}", userId, from, size);
 
@@ -118,6 +121,79 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    public EventFullDto updateEventByOwner(Long userId, Long eventId, UpdateEventUserRequestDto requestDto) {
+        log.info("User id={}: Updating event id={} with data: {}", userId, eventId, requestDto);
+
+        // 1. Найти событие, убедиться, что оно принадлежит пользователю
+        Event event = eventRepository.findByIdAndInitiatorId(eventId, userId)
+            .orElseThrow(() -> new EntityNotFoundException(
+                String.format("Event with id=%d and initiatorId=%d not found", eventId, userId)));
+
+        // 2. Проверить состояние события (можно изменять только PENDING или CANCELED)
+        if (!(event.getState() == EventState.PENDING || event.getState() == EventState.CANCELED)) {
+            throw new BusinessRuleViolationException("Cannot update event: Only pending or canceled events can be changed. Current state: " + event.getState());
+        }
+
+        // 3. Обновляем поля, если они переданы в DTO (не null)
+        if (requestDto.getAnnotation() != null) {
+            event.setAnnotation(requestDto.getAnnotation());
+        }
+        if (requestDto.getCategory() != null) {
+            Category category = categoryRepository.findById(requestDto.getCategory())
+                .orElseThrow(() -> new EntityNotFoundException("Category with id=" + requestDto.getCategory() + " not found."));
+            event.setCategory(category);
+        }
+        if (requestDto.getDescription() != null) {
+            event.setDescription(requestDto.getDescription());
+        }
+        if (requestDto.getEventDate() != null) {
+            // Валидация "не ранее чем через 2 часа" теперь может быть на DTO с @TwoHoursLater
+            // Если нет, то проверка здесь:
+            // if (requestDto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
+            //     throw new ValidationException("Event date must be at least two hours in the future from the current moment.");
+            // }
+            event.setEventDate(requestDto.getEventDate());
+        }
+        if (requestDto.getLocation() != null) {
+            // Location у вас @Embeddable, так что просто присваиваем
+            event.setLocation(requestDto.getLocation());
+        }
+        if (requestDto.getPaid() != null) {
+            event.setPaid(requestDto.getPaid());
+        }
+        if (requestDto.getParticipantLimit() != null) {
+            event.setParticipantLimit(requestDto.getParticipantLimit());
+        }
+        if (requestDto.getRequestModeration() != null) {
+            event.setRequestModeration(requestDto.getRequestModeration());
+        }
+        if (requestDto.getTitle() != null) {
+            event.setTitle(requestDto.getTitle());
+        }
+
+        // 4. Обработка stateAction
+        if (requestDto.getStateAction() != null) {
+            switch (requestDto.getStateAction()) {
+                case SEND_TO_REVIEW:
+                    event.setState(EventState.PENDING);
+                    break;
+                case CANCEL_REVIEW:
+                    event.setState(EventState.CANCELED);
+                    // При отмене пользователем, publishedOn не должен меняться или устанавливаться
+                    break;
+                default:
+                    // Можно выбросить исключение, если передано неизвестное действие
+                    log.warn("Unknown state action for user update: {}", requestDto.getStateAction());
+            }
+        }
+
+        Event updatedEvent = eventRepository.save(event);
+        log.info("User id={}: Event id={} updated successfully.", userId, eventId);
+        return eventMapper.toEventFullDto(updatedEvent);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public EventFullDto getEventPrivate(Long userId, Long eventId) {
         log.debug("Fetching event id: {} for user id: {}", eventId, userId);
 
@@ -130,7 +206,6 @@ public class EventServiceImpl implements EventService {
         return result;
     }
 
-    @Transactional
     @Override
     public EventFullDto addEventPrivate(Long userId, NewEventDto newEventDto) {
 
