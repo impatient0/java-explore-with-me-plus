@@ -2,13 +2,16 @@ package ru.practicum.explorewithme.main.controller.priv;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static ru.practicum.explorewithme.common.constants.DateTimeConstants.DATE_TIME_FORMATTER;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
@@ -26,6 +29,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
 import ru.practicum.explorewithme.main.dto.EventShortDto;
+import ru.practicum.explorewithme.main.dto.UpdateEventUserRequestDto;
+import ru.practicum.explorewithme.main.error.BusinessRuleViolationException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.service.EventService;
 
@@ -43,7 +48,7 @@ class PrivateEventControllerTest {
     private EventService eventService;
 
     private final Long testUserId = 1L;
-    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private final DateTimeFormatter formatter = DATE_TIME_FORMATTER;
 
 
     @Nested
@@ -194,6 +199,100 @@ class PrivateEventControllerTest {
             mockMvc.perform(get("/users/{userId}/events/{eventId}", testUserId, "invalidEventId"))
                 .andExpect(status().isBadRequest());
             verifyNoInteractions(eventService);
+        }
+    }
+
+    @Nested
+    @DisplayName("PATCH /users/{userId}/events/{eventId}: Изменение события пользователем")
+    class UpdateEventByOwnerTest {
+
+        private final Long testEventId = 200L;
+
+        private UpdateEventUserRequestDto createValidUpdateDto() {
+            return UpdateEventUserRequestDto.builder()
+                .title("Updated Event Title")
+                .annotation("Valid Updated Annotation")
+                .eventDate(LocalDateTime.now().plusHours(3).withNano(0))
+                .build();
+        }
+
+        @Test
+        @DisplayName("должен вернуть 200 OK и обновленный EventFullDto при успешном обновлении")
+        void updateEventByOwner_whenUpdateSuccessful_shouldReturnOkAndUpdatedDto() throws Exception {
+            UpdateEventUserRequestDto updateDto = createValidUpdateDto();
+            EventFullDto updatedEventFullDto = EventFullDto.builder()
+                .id(testEventId)
+                .title(updateDto.getTitle())
+                .annotation(updateDto.getAnnotation())
+                .eventDate(updateDto.getEventDate())
+                .build();
+
+            when(eventService.updateEventByOwner(eq(testUserId), eq(testEventId), any(UpdateEventUserRequestDto.class)))
+                .thenReturn(updatedEventFullDto);
+
+            mockMvc.perform(patch("/users/{userId}/events/{eventId}", testUserId, testEventId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(updateDto))
+                    .characterEncoding(StandardCharsets.UTF_8))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(testEventId.intValue())))
+                .andExpect(jsonPath("$.title", is(updateDto.getTitle())))
+                .andExpect(jsonPath("$.annotation", is(updateDto.getAnnotation())))
+                .andExpect(jsonPath("$.eventDate", is(updateDto.getEventDate().format(formatter))));
+
+            verify(eventService).updateEventByOwner(testUserId, testEventId, updateDto);
+        }
+
+        @Test
+        @DisplayName("должен вернуть 400 Bad Request, если DTO обновления невалиден (например, короткое название)")
+        void updateEventByOwner_whenDtoIsInvalid_shouldReturnBadRequest() throws Exception {
+            UpdateEventUserRequestDto invalidUpdateDto = UpdateEventUserRequestDto.builder()
+                .title("S")
+                .build();
+
+            mockMvc.perform(patch("/users/{userId}/events/{eventId}", testUserId, testEventId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(invalidUpdateDto))
+                    .characterEncoding(StandardCharsets.UTF_8))
+                .andExpect(status().isBadRequest());
+
+            verifyNoInteractions(eventService);
+        }
+
+        @Test
+        @DisplayName("должен вернуть 404 Not Found, если событие не найдено или не принадлежит пользователю")
+        void updateEventByOwner_whenEventNotFound_shouldReturnNotFound() throws Exception {
+            UpdateEventUserRequestDto updateDto = createValidUpdateDto();
+            String errorMessage = "Event or user not found";
+            when(eventService.updateEventByOwner(eq(testUserId), eq(testEventId), any(UpdateEventUserRequestDto.class)))
+                .thenThrow(new EntityNotFoundException(errorMessage));
+
+            mockMvc.perform(patch("/users/{userId}/events/{eventId}", testUserId, testEventId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(updateDto))
+                    .characterEncoding(StandardCharsets.UTF_8))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message", is(errorMessage)));
+
+            verify(eventService).updateEventByOwner(testUserId, testEventId, updateDto);
+        }
+
+        @Test
+        @DisplayName("должен вернуть 409 Conflict, если событие нельзя обновить (например, уже опубликовано)")
+        void updateEventByOwner_whenUpdateNotAllowed_shouldReturnConflict() throws Exception {
+            UpdateEventUserRequestDto updateDto = createValidUpdateDto();
+            String errorMessage = "Cannot update published event";
+            when(eventService.updateEventByOwner(eq(testUserId), eq(testEventId), any(UpdateEventUserRequestDto.class)))
+                .thenThrow(new BusinessRuleViolationException(errorMessage));
+
+            mockMvc.perform(patch("/users/{userId}/events/{eventId}", testUserId, testEventId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(updateDto))
+                    .characterEncoding(StandardCharsets.UTF_8))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message", is(errorMessage)));
+
+            verify(eventService).updateEventByOwner(testUserId, testEventId, updateDto);
         }
     }
 }
