@@ -10,7 +10,6 @@ import lombok.experimental.FieldDefaults;
 import ru.practicum.explorewithme.main.model.Location;
 
 import java.time.LocalDateTime;
-import ru.practicum.explorewithme.main.validation.TwoHoursLater;
 
 import static ru.practicum.explorewithme.common.constants.DateTimeConstants.DATE_TIME_FORMAT_PATTERN;
 
@@ -34,7 +33,6 @@ public class NewEventDto {
     String description;
 
     @NotNull(message = "Поле eventDate не может быть пустым")
-    @TwoHoursLater
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_TIME_FORMAT_PATTERN)
     LocalDateTime eventDate;
 

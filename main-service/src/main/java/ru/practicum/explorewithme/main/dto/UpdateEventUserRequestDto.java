@@ -10,7 +10,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import ru.practicum.explorewithme.main.model.Location;
-import ru.practicum.explorewithme.main.validation.TwoHoursLater;
 
 import java.time.LocalDateTime;
 
@@ -29,7 +28,6 @@ public class UpdateEventUserRequestDto {
     private String description;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_TIME_FORMAT_PATTERN)
-    @TwoHoursLater // Кастомная аннотация для проверки "не ранее чем через 2 часа"
     private LocalDateTime eventDate;
 
     private Location location;
