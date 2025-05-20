@@ -462,7 +462,6 @@ class EventServiceImplTest {
     class UpdateEventByOwnerTests {
 
         private Long existingEventId;
-        private Long otherUserId;
         private UpdateEventUserRequestDto validUpdateDto;
         private Event existingEvent;
         private Event updatedEventFromRepo;
@@ -471,7 +470,6 @@ class EventServiceImplTest {
         @BeforeEach
         void setUpUpdateTests() {
             existingEventId = savedEvent.getId();
-            otherUserId = 2L;
 
             validUpdateDto = UpdateEventUserRequestDto.builder()
                 .title("Updated Event Title")
@@ -792,8 +790,8 @@ class EventServiceImplTest {
         }
 
         @Test
-        @DisplayName("Должен выбросить ConflictException при попытке опубликовать не PENDING событие")
-        void moderateEventByAdmin_whenPublishNonPendingEvent_shouldThrowConflictException() {
+        @DisplayName("Должен выбросить BusinessRuleViolationException при попытке опубликовать не PENDING событие")
+        void moderateEventByAdmin_whenPublishNonPendingEvent_shouldThrowBusinessRuleViolationException() {
             existingPendingEvent.setState(EventState.CANCELED);
             when(eventRepository.findById(existingEventId)).thenReturn(Optional.of(existingPendingEvent));
 
@@ -806,8 +804,8 @@ class EventServiceImplTest {
         }
 
         @Test
-        @DisplayName("Должен выбросить ConflictException при попытке опубликовать событие со слишком ранней eventDate")
-        void moderateEventByAdmin_whenPublishEventWithTooSoonEventDate_shouldThrowConflictException() {
+        @DisplayName("Должен выбросить BusinessRuleViolationException при попытке опубликовать событие со слишком ранней eventDate")
+        void moderateEventByAdmin_whenPublishEventWithTooSoonEventDate_shouldThrowBusinessRuleViolationException() {
             existingPendingEvent.setEventDate(now.plusMinutes(30)); // Менее чем за час до "сейчас"
             when(eventRepository.findById(existingEventId)).thenReturn(Optional.of(existingPendingEvent));
 
@@ -820,8 +818,8 @@ class EventServiceImplTest {
         }
 
         @Test
-        @DisplayName("Должен выбросить ConflictException при попытке опубликовать событие с eventDate из DTO, которая слишком ранняя")
-        void moderateEventByAdmin_whenPublishEventWithDtoEventDateTooSoon_shouldThrowConflictException() {
+        @DisplayName("Должен выбросить BusinessRuleViolationException при попытке опубликовать событие с eventDate из DTO, которая слишком ранняя")
+        void moderateEventByAdmin_whenPublishEventWithDtoEventDateTooSoon_shouldThrowBusinessRuleViolationException() {
             UpdateEventAdminRequestDto dtoWithEarlyDate = UpdateEventAdminRequestDto.builder()
                 .eventDate(now.plusMinutes(30))
                 .stateAction(UpdateEventAdminRequestDto.StateActionAdmin.PUBLISH_EVENT)
@@ -839,8 +837,8 @@ class EventServiceImplTest {
 
 
         @Test
-        @DisplayName("Должен выбросить ConflictException при попытке отклонить уже PUBLISHED событие")
-        void moderateEventByAdmin_whenRejectPublishedEvent_shouldThrowConflictException() {
+        @DisplayName("Должен выбросить BusinessRuleViolationException при попытке отклонить уже PUBLISHED событие")
+        void moderateEventByAdmin_whenRejectPublishedEvent_shouldThrowBusinessRuleViolationException() {
             when(eventRepository.findById(existingPublishedEvent.getId())).thenReturn(Optional.of(existingPublishedEvent));
 
             BusinessRuleViolationException exception = assertThrows(BusinessRuleViolationException.class, () -> {

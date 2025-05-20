@@ -316,26 +316,20 @@ class EventServiceIntegrationTest {
         @DisplayName("Должен выбросить EntityNotFoundException, если событие не найдено")
         void getEventPrivate_whenEventNotFound_thenThrowsEntityNotFoundException() {
             Long nonExistentEventId = 999L;
-            assertThrows(EntityNotFoundException.class, () -> {
-                eventService.getEventPrivate(user1.getId(), nonExistentEventId);
-            });
+            assertThrows(EntityNotFoundException.class, () -> eventService.getEventPrivate(user1.getId(), nonExistentEventId));
         }
 
         @Test
         @DisplayName("Должен выбросить EntityNotFoundException, если событие не принадлежит пользователю")
         void getEventPrivate_whenEventDoesNotBelongToUser_thenThrowsEntityNotFoundException() {
-            assertThrows(EntityNotFoundException.class, () -> {
-                eventService.getEventPrivate(user2.getId(), user1Event.getId()); // user2 пытается получить событие user1
-            });
+            assertThrows(EntityNotFoundException.class, () -> eventService.getEventPrivate(user2.getId(), user1Event.getId())); // user2 пытается получить событие user1
         }
 
         @Test
         @DisplayName("Должен выбросить EntityNotFoundException, если пользователь не найден")
         void getEventPrivate_whenUserNotFound_thenThrowsEntityNotFoundException() {
             Long nonExistentUserId = 999L;
-            assertThrows(EntityNotFoundException.class, () -> {
-                eventService.getEventPrivate(nonExistentUserId, user1Event.getId());
-            });
+            assertThrows(EntityNotFoundException.class, () -> eventService.getEventPrivate(nonExistentUserId, user1Event.getId()));
         }
     }
 
@@ -400,9 +394,7 @@ class EventServiceIntegrationTest {
 
             UpdateEventUserRequestDto updateDto = UpdateEventUserRequestDto.builder().title("Try to update").build();
 
-            assertThrows(BusinessRuleViolationException.class, () -> {
-                eventService.updateEventByOwner(user1.getId(), eventToUpdate.getId(), updateDto);
-            });
+            assertThrows(BusinessRuleViolationException.class, () -> eventService.updateEventByOwner(user1.getId(), eventToUpdate.getId(), updateDto));
         }
 
         @Test
@@ -412,9 +404,7 @@ class EventServiceIntegrationTest {
                 .eventDate(now.plusHours(1)) // Менее 2 часов
                 .build();
 
-            assertThrows(BusinessRuleViolationException.class, () -> {
-                eventService.updateEventByOwner(user1.getId(), eventToUpdate.getId(), updateDto);
-            });
+            assertThrows(BusinessRuleViolationException.class, () -> eventService.updateEventByOwner(user1.getId(), eventToUpdate.getId(), updateDto));
         }
 
         @Test
@@ -422,9 +412,7 @@ class EventServiceIntegrationTest {
         void updateEventByOwner_whenEventNotOwnedByUser_thenThrowsEntityNotFoundException() {
             UpdateEventUserRequestDto updateDto = UpdateEventUserRequestDto.builder().title("New title").build();
             // user2 пытается обновить событие user1
-            assertThrows(EntityNotFoundException.class, () -> {
-                eventService.updateEventByOwner(user2.getId(), eventToUpdate.getId(), updateDto);
-            });
+            assertThrows(EntityNotFoundException.class, () -> eventService.updateEventByOwner(user2.getId(), eventToUpdate.getId(), updateDto));
         }
 
         @Test
@@ -435,9 +423,7 @@ class EventServiceIntegrationTest {
                 .category(nonExistentCategoryId)
                 .build();
 
-            assertThrows(EntityNotFoundException.class, () -> {
-                eventService.updateEventByOwner(user1.getId(), eventToUpdate.getId(), updateDto);
-            });
+            assertThrows(EntityNotFoundException.class, () -> eventService.updateEventByOwner(user1.getId(), eventToUpdate.getId(), updateDto));
         }
     }
 
@@ -562,9 +548,7 @@ class EventServiceIntegrationTest {
                 .stateAction(UpdateEventAdminRequestDto.StateActionAdmin.PUBLISH_EVENT)
                 .build();
 
-            assertThrows(BusinessRuleViolationException.class, () -> {
-                eventService.moderateEventByAdmin(pendingEvent.getId(), publishDto);
-            });
+            assertThrows(BusinessRuleViolationException.class, () -> eventService.moderateEventByAdmin(pendingEvent.getId(), publishDto));
         }
 
         @Test
@@ -577,9 +561,7 @@ class EventServiceIntegrationTest {
                 .stateAction(UpdateEventAdminRequestDto.StateActionAdmin.PUBLISH_EVENT)
                 .build();
 
-            assertThrows(BusinessRuleViolationException.class, () -> {
-                eventService.moderateEventByAdmin(pendingEvent.getId(), publishDto);
-            });
+            assertThrows(BusinessRuleViolationException.class, () -> eventService.moderateEventByAdmin(pendingEvent.getId(), publishDto));
         }
 
         @Test
@@ -591,9 +573,7 @@ class EventServiceIntegrationTest {
                 .build();
             // pendingEvent.eventDate (now.plusDays(3)) сама по себе валидна, но DTO ее переопределит
 
-            assertThrows(BusinessRuleViolationException.class, () -> {
-                eventService.moderateEventByAdmin(pendingEvent.getId(), publishDtoWithEarlyDate);
-            });
+            assertThrows(BusinessRuleViolationException.class, () -> eventService.moderateEventByAdmin(pendingEvent.getId(), publishDtoWithEarlyDate));
         }
 
         @Test
@@ -603,9 +583,7 @@ class EventServiceIntegrationTest {
                 .stateAction(UpdateEventAdminRequestDto.StateActionAdmin.REJECT_EVENT)
                 .build();
 
-            assertThrows(BusinessRuleViolationException.class, () -> {
-                eventService.moderateEventByAdmin(publishedEventForRejectTest.getId(), rejectDto);
-            });
+            assertThrows(BusinessRuleViolationException.class, () -> eventService.moderateEventByAdmin(publishedEventForRejectTest.getId(), rejectDto));
         }
 
         @Test
@@ -616,9 +594,7 @@ class EventServiceIntegrationTest {
                 .stateAction(UpdateEventAdminRequestDto.StateActionAdmin.PUBLISH_EVENT)
                 .build();
 
-            assertThrows(EntityNotFoundException.class, () -> {
-                eventService.moderateEventByAdmin(nonExistentEventId, publishDto);
-            });
+            assertThrows(EntityNotFoundException.class, () -> eventService.moderateEventByAdmin(nonExistentEventId, publishDto));
         }
 
         @Test
@@ -633,9 +609,7 @@ class EventServiceIntegrationTest {
             pendingEvent.setEventDate(now.plusHours(2));
             eventRepository.saveAndFlush(pendingEvent);
 
-            assertThrows(EntityNotFoundException.class, () -> {
-                eventService.moderateEventByAdmin(pendingEvent.getId(), updateDtoWithBadCategory);
-            });
+            assertThrows(EntityNotFoundException.class, () -> eventService.moderateEventByAdmin(pendingEvent.getId(), updateDtoWithBadCategory));
         }
     }
 }

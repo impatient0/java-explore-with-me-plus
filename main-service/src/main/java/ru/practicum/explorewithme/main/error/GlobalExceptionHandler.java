@@ -170,7 +170,7 @@ public class GlobalExceptionHandler {
         log.warn("Business rule violation: {}", e.getMessage());
         return ApiError.builder()
                 .status(HttpStatus.CONFLICT)
-                .reason("Business rule violation")
+                .reason("Conditions not met for requested operation")
                 .message(e.getMessage())
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -183,7 +183,7 @@ public class GlobalExceptionHandler {
         return ApiError.builder()
                 .status(HttpStatus.NOT_FOUND)
                 .reason("Restriction of removal")
-                .message("Restriction of removal" + e.getMessage())
+                .message(e.getMessage())
                 .timestamp(LocalDateTime.now())
                 .build();
     }
