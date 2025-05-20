@@ -1,5 +1,6 @@
 package ru.practicum.explorewithme.main.service;
 
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -13,7 +14,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
+import ru.practicum.explorewithme.main.dto.EventShortDto;
 import ru.practicum.explorewithme.main.dto.NewEventDto;
+import ru.practicum.explorewithme.main.dto.UpdateEventUserRequestDto;
 import ru.practicum.explorewithme.main.error.BusinessRuleViolationException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.model.*;
@@ -228,6 +231,212 @@ class EventServiceIntegrationTest {
             AdminEventSearchParams params = AdminEventSearchParams.builder().users(List.of(999L)).build();
             List<EventFullDto> result = eventService.getEventsAdmin(params, 0, 10);
             assertTrue(result.isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("Метод getEventsByOwner")
+    class GetEventsByOwnerTests {
+        private Event eventUser1Cat1, eventUser1Cat2, eventUser2Cat1;
+
+        @BeforeEach
+        void setUpOwnerEvents() {
+            // Создаем события для разных пользователей
+            eventUser1Cat1 = Event.builder().title("User1 Event Cat1").annotation("A").description("D")
+                .category(category1).initiator(user1).location(location1)
+                .eventDate(now.plusDays(1)).state(EventState.PENDING).createdOn(now).build();
+            eventUser1Cat2 = Event.builder().title("User1 Event Cat2").annotation("A").description("D")
+                .category(category2).initiator(user1).location(location1)
+                .eventDate(now.plusDays(2)).state(EventState.PUBLISHED).createdOn(now).build();
+            eventUser2Cat1 = Event.builder().title("User2 Event Cat1").annotation("A").description("D")
+                .category(category1).initiator(user2).location(location1)
+                .eventDate(now.plusDays(3)).state(EventState.PENDING).createdOn(now).build();
+            eventRepository.saveAll(List.of(eventUser1Cat1, eventUser1Cat2, eventUser2Cat1));
+        }
+
+        @Test
+        @DisplayName("Должен возвращать события только указанного пользователя с пагинацией")
+        void getEventsByOwner_whenUserHasEvents_thenReturnsTheirEventsPaged() {
+            List<EventShortDto> resultPage1 = eventService.getEventsByOwner(user1.getId(), 0, 1);
+            assertEquals(1, resultPage1.size());
+            assertEquals(eventUser1Cat2.getTitle(), resultPage1.getFirst().getTitle());
+
+
+            List<EventShortDto> resultPage2 = eventService.getEventsByOwner(user1.getId(), 1, 1);
+            assertEquals(1, resultPage2.size());
+            assertEquals(eventUser1Cat1.getTitle(), resultPage2.getFirst().getTitle());
+
+            List<EventShortDto> allUser1Events = eventService.getEventsByOwner(user1.getId(), 0, 10);
+            assertEquals(2, allUser1Events.size());
+        }
+
+        @Test
+        @DisplayName("Должен возвращать пустой список, если у пользователя нет событий")
+        void getEventsByOwner_whenUserHasNoEvents_thenReturnsEmptyList() {
+            User userWithNoEvents = userRepository.save(User.builder().name("User Three").email("user3@events.com").build());
+            List<EventShortDto> result = eventService.getEventsByOwner(userWithNoEvents.getId(), 0, 10);
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        @DisplayName("Должен возвращать пустой список, если пользователь не найден")
+        void getEventsByOwner_whenUserNotFound_thenReturnsEmptyListOrThrows() {
+            Long nonExistentUserId = 999L;
+            assertTrue(eventService.getEventsByOwner(nonExistentUserId, 0, 10).isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("Метод getEventPrivate")
+    class GetEventPrivateTests {
+        private Event user1Event;
+
+        @BeforeEach
+        void setUpPrivateEvent() {
+            user1Event = Event.builder().title("User1 Specific Event").annotation("A").description("D")
+                .category(category1).initiator(user1).location(location1)
+                .eventDate(now.plusDays(1)).state(EventState.PENDING).createdOn(now).build();
+            user1Event = eventRepository.save(user1Event);
+        }
+
+        @Test
+        @DisplayName("Должен возвращать EventFullDto, если событие найдено и принадлежит пользователю")
+        void getEventPrivate_whenEventExistsAndBelongsToUser_thenReturnsEventFullDto() {
+            EventFullDto result = eventService.getEventPrivate(user1.getId(), user1Event.getId());
+
+            assertNotNull(result);
+            assertEquals(user1Event.getId(), result.getId());
+            assertEquals(user1Event.getTitle(), result.getTitle());
+            assertEquals(user1.getId(), result.getInitiator().getId());
+            assertEquals(category1.getId(), result.getCategory().getId());
+        }
+
+        @Test
+        @DisplayName("Должен выбросить EntityNotFoundException, если событие не найдено")
+        void getEventPrivate_whenEventNotFound_thenThrowsEntityNotFoundException() {
+            Long nonExistentEventId = 999L;
+            assertThrows(EntityNotFoundException.class, () -> {
+                eventService.getEventPrivate(user1.getId(), nonExistentEventId);
+            });
+        }
+
+        @Test
+        @DisplayName("Должен выбросить EntityNotFoundException, если событие не принадлежит пользователю")
+        void getEventPrivate_whenEventDoesNotBelongToUser_thenThrowsEntityNotFoundException() {
+            assertThrows(EntityNotFoundException.class, () -> {
+                eventService.getEventPrivate(user2.getId(), user1Event.getId()); // user2 пытается получить событие user1
+            });
+        }
+
+        @Test
+        @DisplayName("Должен выбросить EntityNotFoundException, если пользователь не найден")
+        void getEventPrivate_whenUserNotFound_thenThrowsEntityNotFoundException() {
+            Long nonExistentUserId = 999L;
+            assertThrows(EntityNotFoundException.class, () -> {
+                eventService.getEventPrivate(nonExistentUserId, user1Event.getId());
+            });
+        }
+    }
+
+    @Nested
+    @DisplayName("Метод updateEventByOwner")
+    class UpdateEventByOwnerTests {
+        private Event eventToUpdate;
+
+        @BeforeEach
+        void setUpUpdateEvent() {
+            eventToUpdate = Event.builder().title("Event to Update").annotation("Initial Annotation")
+                .category(category1).initiator(user1).location(location1).description("Event Description")
+                .eventDate(now.plusDays(5)).state(EventState.PENDING) // Можно обновлять PENDING
+                .createdOn(now.minusDays(1)).participantLimit(10).paid(false).requestModeration(true)
+                .build();
+            eventToUpdate = eventRepository.save(eventToUpdate);
+        }
+
+        @Test
+        @DisplayName("Должен успешно обновлять событие (название, аннотация, дата, состояние в PENDING)")
+        void updateEventByOwner_whenValidUpdate_thenEventIsUpdated() {
+            UpdateEventUserRequestDto updateDto = UpdateEventUserRequestDto.builder()
+                .title("Updated Title by Owner")
+                .annotation("Updated Annotation by Owner")
+                .eventDate(now.plusHours(3)) // Валидная дата
+                .stateAction(UpdateEventUserRequestDto.StateActionUser.SEND_TO_REVIEW)
+                .build();
+
+            EventFullDto updatedEventDto = eventService.updateEventByOwner(user1.getId(), eventToUpdate.getId(), updateDto);
+
+            assertNotNull(updatedEventDto);
+            assertEquals("Updated Title by Owner", updatedEventDto.getTitle());
+            assertEquals("Updated Annotation by Owner", updatedEventDto.getAnnotation());
+            assertEquals(now.plusHours(3), updatedEventDto.getEventDate());
+            assertEquals(EventState.PENDING, updatedEventDto.getState());
+
+            Optional<Event> found = eventRepository.findById(eventToUpdate.getId());
+            assertTrue(found.isPresent());
+            assertEquals("Updated Title by Owner", found.get().getTitle());
+        }
+
+        @Test
+        @DisplayName("Должен изменять состояние на CANCELED при stateAction = CANCEL_REVIEW")
+        void updateEventByOwner_whenCancelReview_thenStateIsCanceled() {
+            UpdateEventUserRequestDto updateDto = UpdateEventUserRequestDto.builder()
+                .stateAction(UpdateEventUserRequestDto.StateActionUser.CANCEL_REVIEW)
+                .build();
+
+            EventFullDto updatedEventDto = eventService.updateEventByOwner(user1.getId(), eventToUpdate.getId(), updateDto);
+            assertEquals(EventState.CANCELED, updatedEventDto.getState());
+
+            Optional<Event> found = eventRepository.findById(eventToUpdate.getId());
+            assertTrue(found.isPresent());
+            assertEquals(EventState.CANCELED, found.get().getState());
+        }
+
+        @Test
+        @DisplayName("Должен выбросить BusinessRuleViolationException при попытке обновить PUBLISHED событие")
+        void updateEventByOwner_whenEventIsPublished_thenThrowsBusinessRuleViolationException() {
+            eventToUpdate.setState(EventState.PUBLISHED);
+            eventRepository.saveAndFlush(eventToUpdate); // Сохраняем измененное состояние
+
+            UpdateEventUserRequestDto updateDto = UpdateEventUserRequestDto.builder().title("Try to update").build();
+
+            assertThrows(BusinessRuleViolationException.class, () -> {
+                eventService.updateEventByOwner(user1.getId(), eventToUpdate.getId(), updateDto);
+            });
+        }
+
+        @Test
+        @DisplayName("Должен выбросить BusinessRuleViolationException, если новая дата события слишком ранняя")
+        void updateEventByOwner_whenNewEventDateIsTooSoon_thenThrowsBusinessRuleViolationException() {
+            UpdateEventUserRequestDto updateDto = UpdateEventUserRequestDto.builder()
+                .eventDate(now.plusHours(1)) // Менее 2 часов
+                .build();
+
+            assertThrows(BusinessRuleViolationException.class, () -> {
+                eventService.updateEventByOwner(user1.getId(), eventToUpdate.getId(), updateDto);
+            });
+        }
+
+        @Test
+        @DisplayName("Должен выбросить EntityNotFoundException, если событие не принадлежит пользователю")
+        void updateEventByOwner_whenEventNotOwnedByUser_thenThrowsEntityNotFoundException() {
+            UpdateEventUserRequestDto updateDto = UpdateEventUserRequestDto.builder().title("New title").build();
+            // user2 пытается обновить событие user1
+            assertThrows(EntityNotFoundException.class, () -> {
+                eventService.updateEventByOwner(user2.getId(), eventToUpdate.getId(), updateDto);
+            });
+        }
+
+        @Test
+        @DisplayName("Должен выбросить EntityNotFoundException, если категория для обновления не найдена")
+        void updateEventByOwner_whenCategoryForUpdateNotFound_thenThrowsEntityNotFoundException() {
+            Long nonExistentCategoryId = 999L;
+            UpdateEventUserRequestDto updateDto = UpdateEventUserRequestDto.builder()
+                .category(nonExistentCategoryId)
+                .build();
+
+            assertThrows(EntityNotFoundException.class, () -> {
+                eventService.updateEventByOwner(user1.getId(), eventToUpdate.getId(), updateDto);
+            });
         }
     }
 }
