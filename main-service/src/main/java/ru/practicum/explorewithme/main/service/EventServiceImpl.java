@@ -124,17 +124,14 @@ public class EventServiceImpl implements EventService {
     public EventFullDto updateEventByOwner(Long userId, Long eventId, UpdateEventUserRequestDto requestDto) {
         log.info("User id={}: Updating event id={} with data: {}", userId, eventId, requestDto);
 
-        // 1. Найти событие, убедиться, что оно принадлежит пользователю
         Event event = eventRepository.findByIdAndInitiatorId(eventId, userId)
             .orElseThrow(() -> new EntityNotFoundException(
                 String.format("Event with id=%d and initiatorId=%d not found", eventId, userId)));
 
-        // 2. Проверить состояние события (можно изменять только PENDING или CANCELED)
         if (!(event.getState() == EventState.PENDING || event.getState() == EventState.CANCELED)) {
             throw new BusinessRuleViolationException("Cannot update event: Only pending or canceled events can be changed. Current state: " + event.getState());
         }
 
-        // 3. Обновляем поля, если они переданы в DTO (не null)
         if (requestDto.getAnnotation() != null) {
             event.setAnnotation(requestDto.getAnnotation());
         }
@@ -147,15 +144,12 @@ public class EventServiceImpl implements EventService {
             event.setDescription(requestDto.getDescription());
         }
         if (requestDto.getEventDate() != null) {
-            // Валидация "не ранее чем через 2 часа" теперь может быть на DTO с @TwoHoursLater
-            // Если нет, то проверка здесь:
-            // if (requestDto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
-            //     throw new ValidationException("Event date must be at least two hours in the future from the current moment.");
-            // }
+             if (requestDto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
+                 throw new BusinessRuleViolationException("Event date must be at least two hours in the future from the current moment.");
+             }
             event.setEventDate(requestDto.getEventDate());
         }
         if (requestDto.getLocation() != null) {
-            // Location у вас @Embeddable, так что просто присваиваем
             event.setLocation(requestDto.getLocation());
         }
         if (requestDto.getPaid() != null) {
@@ -171,7 +165,6 @@ public class EventServiceImpl implements EventService {
             event.setTitle(requestDto.getTitle());
         }
 
-        // 4. Обработка stateAction
         if (requestDto.getStateAction() != null) {
             switch (requestDto.getStateAction()) {
                 case SEND_TO_REVIEW:
@@ -179,10 +172,8 @@ public class EventServiceImpl implements EventService {
                     break;
                 case CANCEL_REVIEW:
                     event.setState(EventState.CANCELED);
-                    // При отмене пользователем, publishedOn не должен меняться или устанавливаться
                     break;
                 default:
-                    // Можно выбросить исключение, если передано неизвестное действие
                     log.warn("Unknown state action for user update: {}", requestDto.getStateAction());
             }
         }
