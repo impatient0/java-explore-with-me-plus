@@ -248,7 +248,7 @@ class CategoryServiceIntegrationTest {
             assertNotNull(createdCategory);
 
             User user = userMapper.toUser(userService
-                    .createUser(new NewUserRequestDto( "Test name", "Test email")));
+                    .createUser(new NewUserRequestDto("Test name", "Test email")));
 
             Event event = Event.builder()
                     .annotation("Test annotation")
