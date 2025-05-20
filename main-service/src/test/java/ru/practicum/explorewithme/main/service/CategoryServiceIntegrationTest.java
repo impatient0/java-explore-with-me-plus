@@ -13,7 +13,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.practicum.explorewithme.main.dto.CategoryDto;
 import ru.practicum.explorewithme.main.dto.NewCategoryDto;
 import ru.practicum.explorewithme.main.dto.NewUserRequestDto;
-import ru.practicum.explorewithme.main.dto.UserDto;
 import ru.practicum.explorewithme.main.error.EntityAlreadyExistsException;
 import ru.practicum.explorewithme.main.error.EntityDeletedException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
@@ -23,7 +22,6 @@ import ru.practicum.explorewithme.main.repository.CategoryRepository;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import ru.practicum.explorewithme.main.repository.EventRepository;
-import ru.practicum.explorewithme.main.repository.UserRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -250,7 +248,7 @@ class CategoryServiceIntegrationTest {
             assertNotNull(createdCategory);
 
             User user = userMapper.toUser(userService
-                    .createUser( new NewUserRequestDto( "Test name", "Test email")));
+                    .createUser(new NewUserRequestDto( "Test name", "Test email")));
 
             Event event = Event.builder()
                     .annotation("Test annotation")
@@ -259,10 +257,10 @@ class CategoryServiceIntegrationTest {
                     .description("Test description")
                     .eventDate(java.time.LocalDateTime.now())
                     .initiator(user)
-                    .location( new Location(5555.55F, 5555.555F))
+                    .location(new Location(5555.55F, 5555.555F))
                     .title("Test title")
                     .publishedOn(java.time.LocalDateTime.now())
-                    .state( EventState.PENDING)
+                    .state(EventState.PENDING)
                     .build();
 
             eventRepository.save(event);
