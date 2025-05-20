@@ -16,6 +16,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
 import ru.practicum.explorewithme.main.dto.EventShortDto;
 import ru.practicum.explorewithme.main.dto.NewEventDto;
+import ru.practicum.explorewithme.main.dto.UpdateEventAdminRequestDto;
 import ru.practicum.explorewithme.main.dto.UpdateEventUserRequestDto;
 import ru.practicum.explorewithme.main.error.BusinessRuleViolationException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
@@ -436,6 +437,204 @@ class EventServiceIntegrationTest {
 
             assertThrows(EntityNotFoundException.class, () -> {
                 eventService.updateEventByOwner(user1.getId(), eventToUpdate.getId(), updateDto);
+            });
+        }
+    }
+
+    @Nested
+    @DisplayName("Метод moderateEventByAdmin (интеграционные тесты)")
+    class ModerateEventByAdminIntegrationTests {
+        private Event pendingEvent;
+        private Event publishedEventForRejectTest;
+        private Category anotherCategory;
+
+        @BeforeEach
+        void setUpModerateIntegrationTests() {
+
+            pendingEvent = Event.builder()
+                .title("Pending Event for Moderation")
+                .annotation("Annotation for pending moderation")
+                .description("Description")
+                .category(category1)
+                .initiator(user1)
+                .location(Location.builder().lat(50f).lon(50f).build())
+                .eventDate(now.plusDays(3))
+                .createdOn(now.minusDays(1))
+                .state(EventState.PENDING)
+                .build();
+            pendingEvent = eventRepository.save(pendingEvent);
+
+            publishedEventForRejectTest = Event.builder()
+                .title("Published Event to Test Rejection")
+                .annotation("Annotation")
+                .description("Description")
+                .category(category2)
+                .initiator(user2)
+                .location(Location.builder().lat(51f).lon(51f).build())
+                .eventDate(now.plusDays(4))
+                .createdOn(now.minusDays(2))
+                .state(EventState.PENDING) // Сначала PENDING
+                .build();
+            publishedEventForRejectTest = eventRepository.save(publishedEventForRejectTest);
+            publishedEventForRejectTest.setState(EventState.PUBLISHED);
+            publishedEventForRejectTest.setPublishedOn(now.minusHours(1)); // Опубликовано час назад
+            publishedEventForRejectTest = eventRepository.save(publishedEventForRejectTest);
+
+
+            anotherCategory = categoryRepository.save(Category.builder().name("Another Category for Update").build());
+        }
+
+        @Test
+        @DisplayName("Должен успешно публиковать PENDING событие")
+        void moderateEventByAdmin_whenPublishPendingEvent_thenStateIsPublishedAndPublishedOnSet() {
+            UpdateEventAdminRequestDto publishDto = UpdateEventAdminRequestDto.builder()
+                .stateAction(UpdateEventAdminRequestDto.StateActionAdmin.PUBLISH_EVENT)
+                .build();
+
+            EventFullDto resultDto = eventService.moderateEventByAdmin(pendingEvent.getId(), publishDto);
+
+            assertNotNull(resultDto);
+            assertEquals(EventState.PUBLISHED, resultDto.getState());
+            assertNotNull(resultDto.getPublishedOn());
+            // Проверяем, что publishedOn примерно равен now (в пределах нескольких секунд из-за выполнения кода)
+            assertTrue(resultDto.getPublishedOn().isAfter(now.minusSeconds(5)) &&
+                resultDto.getPublishedOn().isBefore(now.plusSeconds(5)));
+
+            Optional<Event> foundEvent = eventRepository.findById(pendingEvent.getId());
+            assertTrue(foundEvent.isPresent());
+            assertEquals(EventState.PUBLISHED, foundEvent.get().getState());
+            assertNotNull(foundEvent.get().getPublishedOn());
+        }
+
+        @Test
+        @DisplayName("Должен успешно отклонять PENDING событие")
+        void moderateEventByAdmin_whenRejectPendingEvent_thenStateIsCanceled() {
+            UpdateEventAdminRequestDto rejectDto = UpdateEventAdminRequestDto.builder()
+                .stateAction(UpdateEventAdminRequestDto.StateActionAdmin.REJECT_EVENT)
+                .build();
+
+            EventFullDto resultDto = eventService.moderateEventByAdmin(pendingEvent.getId(), rejectDto);
+
+            assertNotNull(resultDto);
+            assertEquals(EventState.CANCELED, resultDto.getState());
+            assertNull(resultDto.getPublishedOn()); // Для PENDING -> CANCELED publishedOn должен быть null
+
+            Optional<Event> foundEvent = eventRepository.findById(pendingEvent.getId());
+            assertTrue(foundEvent.isPresent());
+            assertEquals(EventState.CANCELED, foundEvent.get().getState());
+            assertNull(foundEvent.get().getPublishedOn());
+        }
+
+        @Test
+        @DisplayName("Должен обновлять поля события (например, title, category) при публикации")
+        void moderateEventByAdmin_whenPublishWithFieldUpdates_thenFieldsAreUpdated() {
+            UpdateEventAdminRequestDto updateAndPublishDto = UpdateEventAdminRequestDto.builder()
+                .title("Admin Updated Published Title")
+                .annotation("Admin new annotation")
+                .category(anotherCategory.getId())
+                .eventDate(now.plusDays(2))
+                .stateAction(UpdateEventAdminRequestDto.StateActionAdmin.PUBLISH_EVENT)
+                .build();
+
+            EventFullDto resultDto = eventService.moderateEventByAdmin(pendingEvent.getId(), updateAndPublishDto);
+
+            assertNotNull(resultDto);
+            assertEquals("Admin Updated Published Title", resultDto.getTitle());
+            assertEquals("Admin new annotation", resultDto.getAnnotation());
+            assertEquals(anotherCategory.getId(), resultDto.getCategory().getId());
+            assertEquals(now.plusDays(2), resultDto.getEventDate());
+            assertEquals(EventState.PUBLISHED, resultDto.getState());
+
+            Optional<Event> foundEvent = eventRepository.findById(pendingEvent.getId());
+            assertTrue(foundEvent.isPresent());
+            assertEquals("Admin Updated Published Title", foundEvent.get().getTitle());
+            assertEquals(anotherCategory.getId(), foundEvent.get().getCategory().getId());
+        }
+
+
+        @Test
+        @DisplayName("Должен выбросить BusinessRuleViolationException при попытке опубликовать не PENDING событие (например, CANCELED)")
+        void moderateEventByAdmin_whenPublishCanceledEvent_thenThrowsBusinessRuleViolationException() {
+            pendingEvent.setState(EventState.CANCELED);
+            eventRepository.saveAndFlush(pendingEvent);
+
+            UpdateEventAdminRequestDto publishDto = UpdateEventAdminRequestDto.builder()
+                .stateAction(UpdateEventAdminRequestDto.StateActionAdmin.PUBLISH_EVENT)
+                .build();
+
+            assertThrows(BusinessRuleViolationException.class, () -> {
+                eventService.moderateEventByAdmin(pendingEvent.getId(), publishDto);
+            });
+        }
+
+        @Test
+        @DisplayName("Должен выбросить BusinessRuleViolationException при публикации события со слишком ранней eventDate")
+        void moderateEventByAdmin_whenPublishEventWithTooSoonDate_thenThrowsBusinessRuleViolationException() {
+            pendingEvent.setEventDate(LocalDateTime.now().plusMinutes(30));
+            eventRepository.saveAndFlush(pendingEvent);
+
+            UpdateEventAdminRequestDto publishDto = UpdateEventAdminRequestDto.builder()
+                .stateAction(UpdateEventAdminRequestDto.StateActionAdmin.PUBLISH_EVENT)
+                .build();
+
+            assertThrows(BusinessRuleViolationException.class, () -> {
+                eventService.moderateEventByAdmin(pendingEvent.getId(), publishDto);
+            });
+        }
+
+        @Test
+        @DisplayName("Должен выбросить BusinessRuleViolationException при публикации, если eventDate из DTO слишком ранняя")
+        void moderateEventByAdmin_whenPublishWithDtoEventDateTooSoon_thenThrowsBusinessRuleViolationException() {
+            UpdateEventAdminRequestDto publishDtoWithEarlyDate = UpdateEventAdminRequestDto.builder()
+                .eventDate(LocalDateTime.now().plusMinutes(30))
+                .stateAction(UpdateEventAdminRequestDto.StateActionAdmin.PUBLISH_EVENT)
+                .build();
+            // pendingEvent.eventDate (now.plusDays(3)) сама по себе валидна, но DTO ее переопределит
+
+            assertThrows(BusinessRuleViolationException.class, () -> {
+                eventService.moderateEventByAdmin(pendingEvent.getId(), publishDtoWithEarlyDate);
+            });
+        }
+
+        @Test
+        @DisplayName("Должен выбросить BusinessRuleViolationException при попытке отклонить уже PUBLISHED событие")
+        void moderateEventByAdmin_whenRejectAlreadyPublishedEvent_thenThrowsBusinessRuleViolationException() {
+            UpdateEventAdminRequestDto rejectDto = UpdateEventAdminRequestDto.builder()
+                .stateAction(UpdateEventAdminRequestDto.StateActionAdmin.REJECT_EVENT)
+                .build();
+
+            assertThrows(BusinessRuleViolationException.class, () -> {
+                eventService.moderateEventByAdmin(publishedEventForRejectTest.getId(), rejectDto);
+            });
+        }
+
+        @Test
+        @DisplayName("Должен выбросить EntityNotFoundException, если событие для модерации не найдено")
+        void moderateEventByAdmin_whenEventNotFound_thenThrowsEntityNotFoundException() {
+            Long nonExistentEventId = 9999L;
+            UpdateEventAdminRequestDto publishDto = UpdateEventAdminRequestDto.builder()
+                .stateAction(UpdateEventAdminRequestDto.StateActionAdmin.PUBLISH_EVENT)
+                .build();
+
+            assertThrows(EntityNotFoundException.class, () -> {
+                eventService.moderateEventByAdmin(nonExistentEventId, publishDto);
+            });
+        }
+
+        @Test
+        @DisplayName("Должен выбросить EntityNotFoundException при обновлении, если категория из DTO не найдена")
+        void moderateEventByAdmin_whenUpdatingWithNonExistentCategory_thenThrowsEntityNotFoundException() {
+            Long nonExistentCategoryId = 8888L;
+            UpdateEventAdminRequestDto updateDtoWithBadCategory = UpdateEventAdminRequestDto.builder()
+                .category(nonExistentCategoryId)
+                .stateAction(UpdateEventAdminRequestDto.StateActionAdmin.PUBLISH_EVENT)
+                .build();
+
+            pendingEvent.setEventDate(now.plusHours(2));
+            eventRepository.saveAndFlush(pendingEvent);
+
+            assertThrows(EntityNotFoundException.class, () -> {
+                eventService.moderateEventByAdmin(pendingEvent.getId(), updateDtoWithBadCategory);
             });
         }
     }
