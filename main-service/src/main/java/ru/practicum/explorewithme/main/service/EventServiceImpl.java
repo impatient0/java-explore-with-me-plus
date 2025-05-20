@@ -2,6 +2,7 @@ package ru.practicum.explorewithme.main.service;
 
 import com.querydsl.core.BooleanBuilder;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
 import ru.practicum.explorewithme.main.dto.EventShortDto;
 import ru.practicum.explorewithme.main.dto.NewEventDto;
+import ru.practicum.explorewithme.main.dto.UpdateEventAdminRequestDto;
 import ru.practicum.explorewithme.main.dto.UpdateEventUserRequestDto;
 import ru.practicum.explorewithme.main.error.BusinessRuleViolationException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
@@ -39,6 +41,8 @@ public class EventServiceImpl implements EventService {
     private final EventMapper eventMapper;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
+
+    private static final long MIN_HOURS_BEFORE_PUBLICATION_FOR_ADMIN = 1;
 
     @Override
     @Transactional(readOnly = true)
@@ -96,6 +100,75 @@ public class EventServiceImpl implements EventService {
         List<EventFullDto> result = eventMapper.toEventFullDtoList(eventPage.getContent());
         log.debug("Admin search found {} events on page {}/{}", result.size(), pageable.getPageNumber(), eventPage.getTotalPages());
         return result;
+    }
+
+    @Override
+    public EventFullDto moderateEventByAdmin(Long eventId, UpdateEventAdminRequestDto requestDto) {
+        log.info("Admin: Moderating event id={} with data: {}", eventId, requestDto);
+
+        Event event = eventRepository.findById(eventId)
+            .orElseThrow(() -> new EntityNotFoundException("Event with id=" + eventId + " not found."));
+
+        if (requestDto.getAnnotation() != null) {
+            event.setAnnotation(requestDto.getAnnotation());
+        }
+        if (requestDto.getCategory() != null) {
+            Category category = categoryRepository.findById(requestDto.getCategory())
+                .orElseThrow(() -> new EntityNotFoundException("Category with id=" + requestDto.getCategory() + " not found for event update."));
+            event.setCategory(category);
+        }
+        if (requestDto.getDescription() != null) {
+            event.setDescription(requestDto.getDescription());
+        }
+        if (requestDto.getEventDate() != null) {
+            event.setEventDate(requestDto.getEventDate());
+        }
+        if (requestDto.getLocation() != null) {
+            event.setLocation(requestDto.getLocation());
+        }
+        if (requestDto.getPaid() != null) {
+            event.setPaid(requestDto.getPaid());
+        }
+        if (requestDto.getParticipantLimit() != null) {
+            event.setParticipantLimit(requestDto.getParticipantLimit());
+        }
+        if (requestDto.getRequestModeration() != null) {
+            event.setRequestModeration(requestDto.getRequestModeration());
+        }
+        if (requestDto.getTitle() != null) {
+            event.setTitle(requestDto.getTitle());
+        }
+
+        if (requestDto.getStateAction() != null) {
+            switch (requestDto.getStateAction()) {
+                case PUBLISH_EVENT:
+                    if (event.getState() != EventState.PENDING) {
+                        throw new BusinessRuleViolationException(
+                            "Cannot publish the event because it's not in the PENDING state. Current state: " + event.getState());
+                    }
+                    if (event.getEventDate().isBefore(LocalDateTime.now().plusHours(MIN_HOURS_BEFORE_PUBLICATION_FOR_ADMIN))) {
+                        throw new BusinessRuleViolationException(
+                            String.format("Cannot publish the event. Event date must be at least %d hour(s) in the future from the current moment. Event date: %s",
+                                MIN_HOURS_BEFORE_PUBLICATION_FOR_ADMIN, event.getEventDate()));
+                    }
+                    event.setState(EventState.PUBLISHED);
+                    event.setPublishedOn(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+                    break;
+                case REJECT_EVENT:
+                    if (event.getState() == EventState.PUBLISHED) {
+                        throw new BusinessRuleViolationException(
+                            "Cannot reject the event because it has already been published. Current state: " + event.getState());
+                    }
+                    event.setState(EventState.CANCELED);
+                    break;
+                default:
+                    log.warn("Admin: Unknown state action for event update: {}", requestDto.getStateAction());
+            }
+        }
+
+        Event updatedEvent = eventRepository.save(event);
+        log.info("Admin: Event id={} moderated successfully. New state: {}", eventId, updatedEvent.getState());
+        return eventMapper.toEventFullDto(updatedEvent);
     }
 
     @Override
