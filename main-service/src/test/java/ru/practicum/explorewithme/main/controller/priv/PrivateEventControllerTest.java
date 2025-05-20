@@ -1,4 +1,4 @@
-package ru.practicum.explorewithme.main.controller.user;
+package ru.practicum.explorewithme.main.controller.priv;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
