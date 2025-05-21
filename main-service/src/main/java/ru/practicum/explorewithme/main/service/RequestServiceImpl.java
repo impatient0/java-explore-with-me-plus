@@ -37,7 +37,7 @@ public class RequestServiceImpl implements RequestService {
     @Override
     @Transactional
     public ParticipationRequestDto cancelRequest(Long userId, Long requestId) {
-        ParticipationRequest result = requestRepository.findById(userId)
+        ParticipationRequest result = requestRepository.findByIdAndRequester_Id(requestId,userId)
                 .orElseThrow(() ->
                         new EntityNotFoundException("User with Id " + userId + " and Request", "Id", userId));
         result.setStatus(RequestStatus.CANCELED);
@@ -64,7 +64,7 @@ public class RequestServiceImpl implements RequestService {
         Event event = eventRepository.findById(requestEventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event", "Id", requestEventId));
 
-        if (requestRepository.findByEvent_IdAndRequester_Id(requestEventId, userId)) {
+        if (requestRepository.existsByEvent_IdAndRequester_Id(requestEventId, userId)) {
             throw new BusinessRuleViolationException("User has already requested for this event");
         }
 
@@ -85,7 +85,6 @@ public class RequestServiceImpl implements RequestService {
         ParticipationRequest newRequest = new ParticipationRequest();
         newRequest.setRequester(user);
         newRequest.setEvent(event);
-        newRequest.setCreated(LocalDateTime.now());
 
         if (event.isRequestModeration()) {
             newRequest.setStatus(RequestStatus.PENDING);

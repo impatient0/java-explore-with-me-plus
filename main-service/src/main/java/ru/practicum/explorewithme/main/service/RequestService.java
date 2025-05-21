@@ -7,10 +7,10 @@ import java.util.List;
 
 public interface RequestService {
 
-    ParticipationRequestDto createRequest(@Positive Long userId, @Positive Long requestEventId);
+    ParticipationRequestDto createRequest(Long userId,Long requestEventId);
 
-    List<ParticipationRequestDto> getRequests(@Positive Long userId);
+    List<ParticipationRequestDto> getRequests(Long userId);
 
-    ParticipationRequestDto cancelRequest(@Positive Long userId, @Positive Long requestId);
+    ParticipationRequestDto cancelRequest(Long userId, Long requestId);
 
 }
