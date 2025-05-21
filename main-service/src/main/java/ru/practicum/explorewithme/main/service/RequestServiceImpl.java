@@ -12,7 +12,6 @@ import ru.practicum.explorewithme.main.repository.EventRepository;
 import ru.practicum.explorewithme.main.repository.RequestRepository;
 import ru.practicum.explorewithme.main.repository.UserRepository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Comparator;
 
