@@ -39,7 +39,7 @@ public class RequestServiceImpl implements RequestService {
     public ParticipationRequestDto cancelRequest(Long userId, Long requestId) {
         ParticipationRequest result = requestRepository.findById(userId)
                 .orElseThrow(() ->
-                        new EntityNotFoundException("User with Id "+userId+" and Request", "Id", userId));
+                        new EntityNotFoundException("User with Id " + userId + " and Request", "Id", userId));
         result.setStatus(RequestStatus.CANCELED);
         requestRepository.save(result);
         return requestMapper.toRequestDto(result);
