@@ -2,6 +2,7 @@ package ru.practicum.explorewithme.main.controller.admin;
 
 import static ru.practicum.explorewithme.common.constants.DateTimeConstants.DATE_TIME_FORMAT_PATTERN;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -9,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
+import ru.practicum.explorewithme.main.dto.UpdateEventAdminRequestDto;
 import ru.practicum.explorewithme.main.model.EventState;
 import ru.practicum.explorewithme.main.service.EventService;
 
@@ -71,7 +73,33 @@ public class AdminEventController {
         return foundEvents;
     }
 
-    // TODO: Добавить PATCH /admin/events/{eventId} для модерации событий
-    // (Задача: ADMIN-EVENTS: Реализация модерации событий (публикация/отклонение))
+    /**
+     * Редактирование данных события и его статуса (отклонение/публикация) администратором.<br>
+     * Валидация данных не требуется (согласно старому ТЗ, но DTO содержит аннотации валидации).<br>
+     * Обратите внимание:
+     * <ul>
+     *     <li>дата начала изменяемого события должна быть не ранее чем за час от даты публикации. (Ожидается код ошибки 409)</li>
+     *     <li>событие можно публиковать, только если оно в состоянии ожидания публикации (Ожидается код ошибки 409)</li>
+     *     <li>событие можно отклонить, только если оно еще не опубликовано (Ожидается код ошибки 409)</li>
+     * </ul>
+     *
+     * @param eventId                   ID события
+     * @param updateEventAdminRequestDto Данные для изменения информации о событии
+     * @return Обновленное EventFullDto
+     */
+    @PatchMapping("/{eventId}")
+    @ResponseStatus(HttpStatus.OK)
+    public EventFullDto moderateEventByAdmin(
+        @PathVariable Long eventId,
+        @Valid @RequestBody UpdateEventAdminRequestDto updateEventAdminRequestDto) {
 
+        log.info("Admin: Received request to moderate event id={} with data: {}",
+            eventId, updateEventAdminRequestDto);
+
+        EventFullDto moderatedEvent = eventService.moderateEventByAdmin(eventId, updateEventAdminRequestDto);
+
+        log.info("Admin: Event id={} moderated successfully. New state: {}",
+            eventId, moderatedEvent.getState());
+        return moderatedEvent;
+    }
 }
