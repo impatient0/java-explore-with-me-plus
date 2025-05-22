@@ -3,6 +3,7 @@ package ru.practicum.explorewithme.main.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.explorewithme.main.dto.EventRequestStatusUpdateResultDto;
 import ru.practicum.explorewithme.main.dto.ParticipationRequestDto;
 import ru.practicum.explorewithme.main.error.BusinessRuleViolationException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
@@ -11,9 +12,13 @@ import ru.practicum.explorewithme.main.model.*;
 import ru.practicum.explorewithme.main.repository.EventRepository;
 import ru.practicum.explorewithme.main.repository.RequestRepository;
 import ru.practicum.explorewithme.main.repository.UserRepository;
+import ru.practicum.explorewithme.main.service.params.EventRequestStatusUpdateRequestParams;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Comparator;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,7 +41,7 @@ public class RequestServiceImpl implements RequestService {
     @Override
     @Transactional
     public ParticipationRequestDto cancelRequest(Long userId, Long requestId) {
-        ParticipationRequest result = requestRepository.findByIdAndRequester_Id(requestId,userId)
+        ParticipationRequest result = requestRepository.findByIdAndRequester_Id(requestId, userId)
                 .orElseThrow(() ->
                         new EntityNotFoundException("User with Id " + userId + " and Request", "Id", userId));
         result.setStatus(RequestStatus.CANCELED);
@@ -52,6 +57,78 @@ public class RequestServiceImpl implements RequestService {
         List<ParticipationRequestDto> result = requestRepository.findByRequester_Id(userId).stream()
                 .sorted(Comparator.comparing(ParticipationRequest::getCreated).reversed())
                 .map(requestMapper::toRequestDto).toList();
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public EventRequestStatusUpdateResultDto updateRequestsStatus(EventRequestStatusUpdateRequestParams requestParams) {
+        Long userId = requestParams.getUserId();
+        Long eventId = requestParams.getEventId();
+        List<Long> requestIdsForUpdate = requestParams.getRequestIds();
+        RequestStatus statusUpdate = requestParams.getStatus();
+        if (!statusUpdate.equals(RequestStatus.REJECTED) && !statusUpdate.equals(RequestStatus.CONFIRMED)) {
+            throw new BusinessRuleViolationException("Only REJECTED and CONFIRMED statuses are allowed");
+        }
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException("Event", "Id", eventId));
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new EntityNotFoundException("Event with Id = " + eventId + " when initiator", "Id", userId);
+        }
+        if (!event.isRequestModeration() || event.getParticipantLimit() == 0) {
+            throw new BusinessRuleViolationException("Event moderation or participant limit is not set");
+        }
+        if (requestRepository.countByIdInAndEvent_Id(requestIdsForUpdate, eventId) != requestIdsForUpdate.size()) {
+            throw new BusinessRuleViolationException("Not all requests are for event with Id = " + eventId);
+        }
+        if (requestRepository
+              .countByEvent_IdAndStatusEquals(eventId, RequestStatus.CONFIRMED) >= event.getParticipantLimit()) {
+            throw new BusinessRuleViolationException("Event participant limit reached");
+        }
+        LinkedHashMap<Long, ParticipationRequest> requestsMap = requestRepository.findAllByIdIn(requestIdsForUpdate).stream()
+                .sorted(Comparator.comparing(ParticipationRequest::getCreated))
+                .collect(Collectors.toMap(
+                        ParticipationRequest::getId,
+                        request -> request,
+                        (existing, replacement) -> existing,
+                        LinkedHashMap::new
+                ));
+        requestsMap.values().forEach(request -> {
+            if (request.getStatus() != RequestStatus.PENDING) {
+                throw new BusinessRuleViolationException("Cannot update request with status " + request.getStatus() +
+                        ". Only requests with PENDING status can be updated.");
+            }
+        });
+        EventRequestStatusUpdateResultDto result = new EventRequestStatusUpdateResultDto();
+        if (statusUpdate == RequestStatus.REJECTED) {
+            requestsMap.values().forEach(request -> {
+                request.setStatus(RequestStatus.REJECTED);
+                result.getRejectedRequests().add(requestMapper.toRequestDto(request));
+                requestRepository.save(request);
+            });
+            return result;
+        }
+         requestsMap.values().forEach(request -> {
+             if (requestRepository
+                     .countByEvent_IdAndStatusEquals(eventId, RequestStatus.CONFIRMED)
+                     < event.getParticipantLimit()) {
+                 request.setStatus(RequestStatus.CONFIRMED);
+                 result.getConfirmedRequests().add(requestMapper.toRequestDto(request));
+                 requestRepository.save(request);
+             } else {
+                 request.setStatus(RequestStatus.REJECTED);
+                 result.getRejectedRequests().add(requestMapper.toRequestDto(request));
+                 requestRepository.save(request);
+             }
+         });
+        if (requestRepository
+                .countByEvent_IdAndStatusEquals(eventId, RequestStatus.CONFIRMED)
+                == event.getParticipantLimit()) {
+            List<ParticipationRequestDto> updateList = requestRepository
+                    .updateStatusToRejectedByEventIdAndStatus(eventId, RequestStatus.PENDING).stream()
+                    .map(requestMapper::toRequestDto).toList();
+            result.getRejectedRequests().addAll(updateList);
+        }
         return result;
     }
 
