@@ -13,8 +13,6 @@ import ru.practicum.explorewithme.main.service.EventService;
 import ru.practicum.explorewithme.main.service.RequestService;
 import ru.practicum.explorewithme.main.service.params.EventRequestStatusUpdateRequestParams;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor

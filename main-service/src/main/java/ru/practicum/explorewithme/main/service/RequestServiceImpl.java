@@ -17,7 +17,6 @@ import ru.practicum.explorewithme.main.service.params.EventRequestStatusUpdateRe
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Comparator;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service

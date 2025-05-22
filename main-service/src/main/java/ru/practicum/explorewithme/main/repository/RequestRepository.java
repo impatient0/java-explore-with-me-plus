@@ -7,7 +7,6 @@ import org.springframework.stereotype.Repository;
 import ru.practicum.explorewithme.main.model.ParticipationRequest;
 import ru.practicum.explorewithme.main.model.RequestStatus;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
