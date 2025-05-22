@@ -123,8 +123,8 @@ public class RequestServiceImpl implements RequestService {
         if (requestRepository
                 .countByEvent_IdAndStatusEquals(eventId, RequestStatus.CONFIRMED)
                 == event.getParticipantLimit()) {
-            List<ParticipationRequestDto> updateList = requestRepository
-                    .updateStatusToRejectedByEventIdAndStatus(eventId, RequestStatus.PENDING).stream()
+            List<ParticipationRequestDto>
+                    updateList = updateAndReturnRejectedRequests(eventId, RequestStatus.PENDING).stream()
                     .map(requestMapper::toRequestDto).toList();
             result.getRejectedRequests().addAll(updateList);
         }
@@ -169,4 +169,12 @@ public class RequestServiceImpl implements RequestService {
 
         return newRequest;
     }
+
+    @Override
+    @Transactional
+    public List<ParticipationRequest> updateAndReturnRejectedRequests(Long eventId, RequestStatus status) {
+        requestRepository.updateStatusToRejected(eventId, status);
+        return requestRepository.findByEventIdAndStatus(eventId, RequestStatus.REJECTED);
+    }
+
 }

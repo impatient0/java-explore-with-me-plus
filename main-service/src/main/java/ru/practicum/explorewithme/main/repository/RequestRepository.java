@@ -3,6 +3,7 @@ package ru.practicum.explorewithme.main.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import ru.practicum.explorewithme.main.model.ParticipationRequest;
 import ru.practicum.explorewithme.main.model.RequestStatus;
@@ -27,6 +28,9 @@ public interface RequestRepository extends JpaRepository<ParticipationRequest, L
 
     @Modifying
     @Query("UPDATE ParticipationRequest r SET r.status = ru.practicum.explorewithme.main.model.RequestStatus.REJECTED " +
-            "WHERE r.event.id = :eventId AND r.status = :status RETURNING r")
-    List<ParticipationRequest> updateStatusToRejectedByEventIdAndStatus(Long eventId, RequestStatus status);
+            "WHERE r.event.id = :eventId AND r.status = :status")
+    void updateStatusToRejected(@Param("eventId") Long eventId, @Param("status") RequestStatus status);
+
+    List<ParticipationRequest> findByEventIdAndStatus(Long eventId, RequestStatus status);
+
 }
