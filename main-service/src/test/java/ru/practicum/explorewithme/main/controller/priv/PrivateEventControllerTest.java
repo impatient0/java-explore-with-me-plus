@@ -33,6 +33,7 @@ import ru.practicum.explorewithme.main.dto.UpdateEventUserRequestDto;
 import ru.practicum.explorewithme.main.error.BusinessRuleViolationException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.service.EventService;
+import ru.practicum.explorewithme.main.service.RequestService;
 
 @WebMvcTest(PrivateEventController.class)
 @DisplayName("Тесты для PrivateEventController")
@@ -46,6 +47,9 @@ class PrivateEventControllerTest {
 
     @MockitoBean
     private EventService eventService;
+
+    @MockitoBean
+    private RequestService requestService;
 
     private final Long testUserId = 1L;
     private final DateTimeFormatter formatter = DATE_TIME_FORMATTER;

@@ -49,7 +49,7 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public List<ParticipationRequestDto> getRequests(Long userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User", "Id", userId));
