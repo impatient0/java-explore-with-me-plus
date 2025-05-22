@@ -2,7 +2,6 @@ package ru.practicum.explorewithme.main.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -34,7 +33,6 @@ public class NewEventDto {
     String description;
 
     @NotNull(message = "Поле eventDate не может быть пустым")
-    @Future(message = "Дата события должна быть в будущем")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_TIME_FORMAT_PATTERN)
     LocalDateTime eventDate;
 
