@@ -138,10 +138,13 @@ public class RequestServiceImpl implements RequestService {
         });
         requestRepository.saveAll(requestsMap.values());
         if (availableRequests[0] == 0) {
-            List<ParticipationRequestDto>
-                    updateList = updatePendingRequestsToRejected(eventId).stream()
-                    .map(requestMapper::toRequestDto).toList();
-            result.getRejectedRequests().addAll(updateList);
+            List<ParticipationRequest> pendingRequests = requestRepository.findByEvent_IdAndStatus(eventId, RequestStatus.PENDING);
+            if (!pendingRequests.isEmpty()) {
+                pendingRequests.forEach(request -> request.setStatus(RequestStatus.REJECTED));
+                requestRepository.saveAll(pendingRequests);
+                result.getRejectedRequests().addAll(pendingRequests.stream()
+                        .map(requestMapper::toRequestDto).toList());
+            }
         }
         return result;
     }
@@ -174,38 +177,6 @@ public class RequestServiceImpl implements RequestService {
             newRequest.setStatus(RequestStatus.PENDING);
         }
         return newRequest;
-    }
-
-    @Override
-    @Transactional
-    public List<ParticipationRequest> updatePendingRequestsToRejected(Long eventId) {
-
-        TypedQuery<Long> idQuery = entityManager.createQuery(
-                "SELECT r.id FROM ParticipationRequest r WHERE r.event.id = :eventId AND r.status = :status",
-                Long.class);
-        idQuery.setParameter("eventId", eventId);
-        idQuery.setParameter("status", RequestStatus.PENDING);
-        List<Long> pendingRequestIds = idQuery.getResultList();
-
-        if (pendingRequestIds.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        Query updateQuery = entityManager.createQuery(
-                "UPDATE ParticipationRequest r SET r.status = :newStatus WHERE r.id IN :ids");
-        updateQuery.setParameter("newStatus", RequestStatus.REJECTED);
-        updateQuery.setParameter("ids", pendingRequestIds);
-        int updatedCount = updateQuery.executeUpdate();
-
-        TypedQuery<ParticipationRequest> resultQuery = entityManager.createQuery(
-                "SELECT r FROM ParticipationRequest r WHERE r.id IN :ids",
-                ParticipationRequest.class);
-        resultQuery.setParameter("ids", pendingRequestIds);
-
-        entityManager.flush();
-        entityManager.clear();
-
-        return resultQuery.getResultList();
     }
 
 }
