@@ -33,4 +33,5 @@ public interface RequestRepository extends JpaRepository<ParticipationRequest, L
 
     List<ParticipationRequest> findByEventIdAndStatus(Long eventId, RequestStatus status);
 
+    List<ParticipationRequest> findByEvent_Id(Long eventId);
 }

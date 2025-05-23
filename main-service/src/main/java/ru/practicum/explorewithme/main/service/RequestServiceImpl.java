@@ -42,7 +42,7 @@ public class RequestServiceImpl implements RequestService {
     public ParticipationRequestDto cancelRequest(Long userId, Long requestId) {
         ParticipationRequest result = requestRepository.findByIdAndRequester_Id(requestId, userId)
                 .orElseThrow(() ->
-                        new EntityNotFoundException("User with Id " + userId + " and Request", "Id", userId));
+                        new EntityNotFoundException("User with Id = " + userId + " and Request", "Id", userId));
         result.setStatus(RequestStatus.CANCELED);
         requestRepository.save(result);
         return requestMapper.toRequestDto(result);
@@ -54,6 +54,17 @@ public class RequestServiceImpl implements RequestService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User", "Id", userId));
         List<ParticipationRequestDto> result = requestRepository.findByRequester_Id(userId).stream()
+                .sorted(Comparator.comparing(ParticipationRequest::getCreated).reversed())
+                .map(requestMapper::toRequestDto).toList();
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ParticipationRequestDto> getEventRequests(Long userId, Long eventId) {
+        if (!eventRepository.existsByIdAndInitiator_Id(eventId, userId))
+            throw new EntityNotFoundException("Event with Id = " + eventId + " when initiator", "Id", userId);
+        List<ParticipationRequestDto> result = requestRepository.findByEvent_Id(eventId).stream()
                 .sorted(Comparator.comparing(ParticipationRequest::getCreated).reversed())
                 .map(requestMapper::toRequestDto).toList();
         return result;

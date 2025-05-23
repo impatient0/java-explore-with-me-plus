@@ -13,6 +13,7 @@ import ru.practicum.explorewithme.main.dto.EventRequestStatusUpdateResultDto;
 import ru.practicum.explorewithme.main.dto.EventShortDto;
 import ru.practicum.explorewithme.main.dto.NewEventDto;
 import ru.practicum.explorewithme.main.dto.UpdateEventUserRequestDto;
+import ru.practicum.explorewithme.main.dto.ParticipationRequestDto;
 import ru.practicum.explorewithme.main.service.EventService;
 import ru.practicum.explorewithme.main.service.RequestService;
 import ru.practicum.explorewithme.main.service.params.EventRequestStatusUpdateRequestParams;
@@ -120,8 +121,18 @@ public class PrivateEventController {
         return updatedEvent;
     }
 
-    // TODO: GET /users/{userId}/events/{eventId}/requests - Получение запросов на участие в событии текущего пользователя (-> List<ParticipationRequestDto>)
-    // (Задача: PRIVATE-EVENTS: Получение запросов на участие в событии текущего пользователя)
+
+    @GetMapping("/{eventId}/requests")
+    @ResponseStatus(HttpStatus.OK)
+    public List<ParticipationRequestDto> getEventRequests(
+            @PathVariable @Positive Long userId,
+            @PathVariable @Positive Long eventId) {
+        log.info("Private: Received request to get list requests for event {} when initiator {}", eventId, userId);
+        List<ParticipationRequestDto> result = requestService.getEventRequests(userId, eventId);
+        log.info("Private: Received list requests for event {} when initiator {} : {}", eventId, userId, result);
+        return result;
+    }
+
 
     @PatchMapping("/{eventId}/requests")
     @ResponseStatus(HttpStatus.OK)
