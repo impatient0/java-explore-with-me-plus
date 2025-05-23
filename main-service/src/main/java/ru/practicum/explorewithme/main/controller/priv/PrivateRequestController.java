@@ -25,9 +25,9 @@ public class PrivateRequestController {
     @ResponseStatus(HttpStatus.CREATED)
     public ParticipationRequestDto createRequest(
             @PathVariable @Positive Long userId,
-            @RequestParam @Positive Long requestEventId) {
-        log.info("Private: Received request to add user {} in event: {}", userId, requestEventId);
-        ParticipationRequestDto result = requestService.createRequest(userId, requestEventId);
+            @RequestParam @Positive Long eventId) {
+        log.info("Private: Received request to add user {} in event: {}", userId, eventId);
+        ParticipationRequestDto result = requestService.createRequest(userId, eventId);
         log.info("Private: Adding user: {}", result);
         return result;
     }

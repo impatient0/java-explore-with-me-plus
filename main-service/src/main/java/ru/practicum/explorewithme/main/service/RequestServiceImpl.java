@@ -164,10 +164,10 @@ public class RequestServiceImpl implements RequestService {
         ParticipationRequest newRequest = new ParticipationRequest();
         newRequest.setRequester(user);
         newRequest.setEvent(event);
-        if (event.isRequestModeration()) {
-            newRequest.setStatus(RequestStatus.PENDING);
-        } else {
+        if (!event.isRequestModeration() || event.getParticipantLimit() == 0) {
             newRequest.setStatus(RequestStatus.CONFIRMED);
+        } else {
+            newRequest.setStatus(RequestStatus.PENDING);
         }
         return newRequest;
     }
