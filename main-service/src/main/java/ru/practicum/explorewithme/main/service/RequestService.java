@@ -3,7 +3,6 @@ package ru.practicum.explorewithme.main.service;
 import ru.practicum.explorewithme.main.dto.EventRequestStatusUpdateResultDto;
 import jakarta.validation.constraints.Positive;
 import ru.practicum.explorewithme.main.dto.ParticipationRequestDto;
-import ru.practicum.explorewithme.main.model.ParticipationRequest;
 import ru.practicum.explorewithme.main.service.params.EventRequestStatusUpdateRequestParams;
 
 import java.util.List;
