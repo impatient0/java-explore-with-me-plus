@@ -143,41 +143,32 @@ public class RequestServiceImpl implements RequestService {
     }
 
     private ParticipationRequest checkRequest(Long userId, Long requestEventId) {
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User", "Id", userId));
-
         Event event = eventRepository.findById(requestEventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event", "Id", requestEventId));
-
         if (requestRepository.existsByEvent_IdAndRequester_Id(requestEventId, userId)) {
             throw new BusinessRuleViolationException("User has already requested for this event");
         }
-
         if (event.getInitiator().getId().equals(userId)) {
             throw new BusinessRuleViolationException("User cannot participate in his own event");
         }
-
         if (event.getState() != EventState.PUBLISHED) {
             throw new BusinessRuleViolationException("Event must be published");
         }
-
         if (event.getParticipantLimit() > 0 &&
                 requestRepository.countByEvent_IdAndStatusEquals(requestEventId, RequestStatus.CONFIRMED) >=
                         event.getParticipantLimit()) {
             throw new BusinessRuleViolationException("Event participant limit reached");
         }
-
         ParticipationRequest newRequest = new ParticipationRequest();
         newRequest.setRequester(user);
         newRequest.setEvent(event);
-
         if (event.isRequestModeration()) {
             newRequest.setStatus(RequestStatus.PENDING);
         } else {
             newRequest.setStatus(RequestStatus.CONFIRMED);
         }
-
         return newRequest;
     }
 
