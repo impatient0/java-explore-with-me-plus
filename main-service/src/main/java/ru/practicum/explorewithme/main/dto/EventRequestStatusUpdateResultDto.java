@@ -14,8 +14,10 @@ import java.util.List;
 @AllArgsConstructor
 public class EventRequestStatusUpdateResultDto {
 
+    @Builder.Default
     List<ParticipationRequestDto> confirmedRequests = new ArrayList<>();
 
+    @Builder.Default
     List<ParticipationRequestDto> rejectedRequests = new ArrayList<>();
 
 }

@@ -31,7 +31,7 @@ public interface RequestRepository extends JpaRepository<ParticipationRequest, L
             "WHERE r.event.id = :eventId AND r.status = :status")
     void updateStatusToRejected(@Param("eventId") Long eventId, @Param("status") RequestStatus status);
 
-    List<ParticipationRequest> findByEventIdAndStatus(Long eventId, RequestStatus status);
+    List<ParticipationRequest> findByEvent_IdAndStatus(Long eventId, RequestStatus status);
 
     List<ParticipationRequest> findByEvent_Id(Long eventId);
 }

@@ -21,5 +21,5 @@ public interface RequestService {
 
     EventRequestStatusUpdateResultDto updateRequestsStatus(EventRequestStatusUpdateRequestParams requestParams);
 
-    List<ParticipationRequest> updateAndReturnRejectedRequests(Long eventId, RequestStatus status);
+    List<ParticipationRequest> updatePendingRequestsToRejected(Long eventId);
 }
