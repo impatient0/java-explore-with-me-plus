@@ -119,26 +119,25 @@ public class RequestServiceImpl implements RequestService {
             requestsMap.values().forEach(request -> {
                 request.setStatus(RequestStatus.REJECTED);
                 result.getRejectedRequests().add(requestMapper.toRequestDto(request));
-                requestRepository.save(request);
             });
+            requestRepository.saveAll(requestsMap.values());
             return result;
         }
-         requestsMap.values().forEach(request -> {
-             if (requestRepository
-                     .countByEvent_IdAndStatusEquals(eventId, RequestStatus.CONFIRMED)
-                     < event.getParticipantLimit()) {
+
+        final int[] availableRequests = {event.getParticipantLimit() -
+                requestRepository.countByEvent_IdAndStatusEquals(eventId, RequestStatus.CONFIRMED)};
+        requestsMap.values().forEach(request -> {
+             if (availableRequests[0] > 0) {
                  request.setStatus(RequestStatus.CONFIRMED);
                  result.getConfirmedRequests().add(requestMapper.toRequestDto(request));
-                 requestRepository.save(request);
+                 availableRequests[0]--;
              } else {
                  request.setStatus(RequestStatus.REJECTED);
                  result.getRejectedRequests().add(requestMapper.toRequestDto(request));
-                 requestRepository.save(request);
              }
-         });
-        if (requestRepository
-                .countByEvent_IdAndStatusEquals(eventId, RequestStatus.CONFIRMED)
-                == event.getParticipantLimit()) {
+        });
+        requestRepository.saveAll(requestsMap.values());
+        if ( availableRequests[0] == 0) {
             List<ParticipationRequestDto>
                     updateList = updatePendingRequestsToRejected(eventId).stream()
                     .map(requestMapper::toRequestDto).toList();
