@@ -137,7 +137,7 @@ public class RequestServiceImpl implements RequestService {
              }
         });
         requestRepository.saveAll(requestsMap.values());
-        if ( availableRequests[0] == 0) {
+        if (availableRequests[0] == 0) {
             List<ParticipationRequestDto>
                     updateList = updatePendingRequestsToRejected(eventId).stream()
                     .map(requestMapper::toRequestDto).toList();
