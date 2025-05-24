@@ -31,6 +31,9 @@ public class PublicCompilationController {
             @RequestParam(name = "from", defaultValue = "0") @PositiveOrZero int from,
             @RequestParam(name = "size", defaultValue = "10") @Positive int size) {
         log.info("Received request to get compilations with pinned={}, from={}, size={}", pinned, from, size);
+        if (size <= 0) {
+            throw new IllegalArgumentException("Size must be greater than 0");
+        }
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.ASC, "id"));
         List<CompilationDto> result = compilationService.getCompilations(pinned, pageable);
         log.info("Found {} compilations", result.size());

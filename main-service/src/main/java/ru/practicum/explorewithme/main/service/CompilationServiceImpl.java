@@ -16,6 +16,7 @@ import ru.practicum.explorewithme.main.model.Event;
 import ru.practicum.explorewithme.main.repository.CompilationRepository;
 import ru.practicum.explorewithme.main.repository.EventRepository;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,9 +36,15 @@ public class CompilationServiceImpl implements CompilationService {
     @Transactional(readOnly = true)
     public List<CompilationDto> getCompilations(Boolean pinned, Pageable pageable) {
         log.debug("Fetching compilations with pinned={} and pageable={}", pinned, pageable);
-        List<Compilation> compilations = (pinned != null)
-                ? compilationRepository.findByPinned(pinned, pageable)
-                : (List<Compilation>) compilationRepository.findAll(pageable);
+        List<Compilation> compilations;
+        if (pinned != null) {
+            compilations = compilationRepository.findByPinned(pinned, pageable);
+        } else {
+            compilations = (List<Compilation>) compilationRepository.findAll(pageable);
+        }
+        if (compilations.isEmpty()) {
+            return Collections.emptyList();
+        }
         List<CompilationDto> result = compilations.stream()
                 .map(compilationMapper::toDto)
                 .collect(Collectors.toList());
@@ -59,6 +66,9 @@ public class CompilationServiceImpl implements CompilationService {
     @Override
     public CompilationDto saveCompilation(NewCompilationDto request) {
         log.info("Creating new compilation: {}", request);
+        if (request.getTitle() == null || request.getTitle().isBlank()) {
+            throw new IllegalArgumentException("Compilation title cannot be blank");
+        }
         if (compilationRepository.existsByTitleIgnoreCaseAndTrim(request.getTitle())) {
             throw new EntityAlreadyExistsException("Compilation", "title", request.getTitle());
         }
@@ -68,6 +78,7 @@ public class CompilationServiceImpl implements CompilationService {
                 ? loadEvents(request.getEvents())
                 : new HashSet<>();
         compilation.setEvents(events);
+        compilation.setPinned(request.getPinned() != null ? request.getPinned() : false);
 
         Compilation savedCompilation = compilationRepository.save(compilation);
         CompilationDto result = compilationMapper.toDto(savedCompilation);
@@ -110,17 +121,18 @@ public class CompilationServiceImpl implements CompilationService {
     @Override
     public void deleteCompilation(Long compId) {
         log.info("Deleting compilation with id={}", compId);
-        if (!compilationRepository.existsById(compId)) {
-            throw new EntityNotFoundException("Compilation", "Id", compId);
-        }
-        compilationRepository.deleteById(compId);
+        Compilation compilation = compilationRepository.findById(compId)
+                .orElseThrow(() -> new EntityNotFoundException("Compilation", "Id", compId));
+        compilationRepository.delete(compilation);
         log.info("Compilation with id={} deleted successfully", compId);
     }
 
     private Set<Event> loadEvents(List<Long> eventIds) {
         List<Event> events = eventRepository.findAllById(eventIds);
         if (events.size() != eventIds.size()) {
-            throw new EntityNotFoundException("Some events not found for IDs: " + eventIds);
+            List<Long> foundIds = events.stream().map(Event::getId).collect(Collectors.toList());
+            List<Long> missingIds = eventIds.stream().filter(id -> !foundIds.contains(id)).collect(Collectors.toList());
+            throw new EntityNotFoundException("Events not found for IDs: " + missingIds);
         }
         return new HashSet<>(events);
     }
