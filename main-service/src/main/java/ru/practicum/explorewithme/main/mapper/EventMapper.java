@@ -13,10 +13,9 @@ import ru.practicum.explorewithme.main.model.Event;
 public interface EventMapper {
 
     @Mappings({
-        @Mapping(source = "category", target = "category"),
-        @Mapping(source = "initiator", target = "initiator"),
-        @Mapping(target = "confirmedRequests", expression = "java(0L)"), // Заглушка
-        @Mapping(target = "views", expression = "java(0L)") // Заглушка
+            @Mapping(source = "category", target = "category"),
+            @Mapping(source = "initiator", target = "initiator"),
+            @Mapping(source = "views", target = "views")
     })
     EventFullDto toEventFullDto(Event event);
 
@@ -31,10 +30,9 @@ public interface EventMapper {
     List<EventFullDto> toEventFullDtoList(List<Event> events);
 
     @Mappings({
-        @Mapping(source = "category", target = "category"),
-        @Mapping(source = "initiator", target = "initiator"),
-        @Mapping(target = "confirmedRequests", expression = "java(0L)"), // Заглушка
-        @Mapping(target = "views", expression = "java(0L)") // Заглушка
+            @Mapping(source = "category", target = "category"),
+            @Mapping(source = "initiator", target = "initiator"),
+            @Mapping(source = "views", target = "views")
     })
     EventShortDto toEventShortDto(Event event);
 
