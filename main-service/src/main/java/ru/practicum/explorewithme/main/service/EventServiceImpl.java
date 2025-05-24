@@ -46,7 +46,10 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EventFullDto> getEventsAdmin(AdminEventSearchParams params, int from, int size) {
+    public List<EventFullDto> getEventsAdmin(AdminEventSearchParams params,
+        int from,
+        int size) {
+
         List<Long> users = params.getUsers();
         List<EventState> states = params.getStates();
         List<Long> categories = params.getCategories();
@@ -54,60 +57,70 @@ public class EventServiceImpl implements EventService {
         LocalDateTime rangeEnd = params.getRangeEnd();
 
         log.debug("Admin search for events with params: users={}, states={}, categories={}, rangeStart={}, rangeEnd={}, from={}, size={}",
-                users, states, categories, rangeStart, rangeEnd, from, size);
+            users, states, categories, rangeStart, rangeEnd, from, size);
 
-        if (size <= 0) {
-            throw new IllegalArgumentException("Size must be greater than 0");
-        }
         if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
-            throw new IllegalArgumentException("Range start cannot be after range end");
+            log.warn("Admin search: rangeStart cannot be after rangeEnd. rangeStart={}, rangeEnd={}", rangeStart, rangeEnd);
+            throw new IllegalArgumentException("Admin search: rangeStart cannot be after rangeEnd.");
         }
 
         QEvent qEvent = QEvent.event;
         BooleanBuilder predicate = new BooleanBuilder();
 
         if (users != null && !users.isEmpty()) {
+            // TODO: Возможно, стоит проверить, существуют ли такие пользователи, если это требуется по логике
             predicate.and(qEvent.initiator.id.in(users));
         }
+
         if (states != null && !states.isEmpty()) {
             predicate.and(qEvent.state.in(states));
         }
+
         if (categories != null && !categories.isEmpty()) {
+            // TODO: Возможно, стоит проверить, существуют ли такие категории
             predicate.and(qEvent.category.id.in(categories));
         }
+
         if (rangeStart != null) {
-            predicate.and(qEvent.eventDate.goe(rangeStart));
+            predicate.and(qEvent.eventDate.goe(rangeStart)); // greater or equal
         }
+
         if (rangeEnd != null) {
-            predicate.and(qEvent.eventDate.loe(rangeEnd));
+            predicate.and(qEvent.eventDate.loe(rangeEnd)); // lower or equal
         }
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.ASC, "id"));
+
         Page<Event> eventPage = eventRepository.findAll(predicate, pageable);
 
-        return eventPage.isEmpty() ? Collections.emptyList() : eventMapper.toEventFullDtoList(eventPage.getContent());
+        if (eventPage.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<EventFullDto> result = eventMapper.toEventFullDtoList(eventPage.getContent());
+        log.debug("Admin search found {} events on page {}/{}", result.size(), pageable.getPageNumber(), eventPage.getTotalPages());
+        return result;
     }
 
     @Override
     public EventFullDto moderateEventByAdmin(Long eventId, UpdateEventAdminRequestDto requestDto) {
+        log.info("Admin: Moderating event id={} with data: {}", eventId, requestDto);
+
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new EntityNotFoundException("Event", "id", eventId));
+            .orElseThrow(() -> new EntityNotFoundException("Event with id=" + eventId + " not found."));
 
         if (requestDto.getAnnotation() != null) {
             event.setAnnotation(requestDto.getAnnotation());
         }
         if (requestDto.getCategory() != null) {
             Category category = categoryRepository.findById(requestDto.getCategory())
-                    .orElseThrow(() -> new EntityNotFoundException("Category", "id", requestDto.getCategory()));
+                .orElseThrow(() -> new EntityNotFoundException("Category with id=" + requestDto.getCategory() + " not found for event update."));
             event.setCategory(category);
         }
         if (requestDto.getDescription() != null) {
             event.setDescription(requestDto.getDescription());
         }
         if (requestDto.getEventDate() != null) {
-            if (requestDto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
-                throw new BusinessRuleViolationException("Event date must be at least 2 hours in the future");
-            }
             event.setEventDate(requestDto.getEventDate());
         }
         if (requestDto.getLocation() != null) {
@@ -117,9 +130,6 @@ public class EventServiceImpl implements EventService {
             event.setPaid(requestDto.getPaid());
         }
         if (requestDto.getParticipantLimit() != null) {
-            if (requestDto.getParticipantLimit() < 0) {
-                throw new BusinessRuleViolationException("Participant limit cannot be negative");
-            }
             event.setParticipantLimit(requestDto.getParticipantLimit());
         }
         if (requestDto.getRequestModeration() != null) {
@@ -133,49 +143,66 @@ public class EventServiceImpl implements EventService {
             switch (requestDto.getStateAction()) {
                 case PUBLISH_EVENT:
                     if (event.getState() != EventState.PENDING) {
-                        throw new BusinessRuleViolationException("Event must be in PENDING state to publish");
+                        throw new BusinessRuleViolationException(
+                            "Cannot publish the event because it's not in the PENDING state. Current state: " + event.getState());
                     }
                     if (event.getEventDate().isBefore(LocalDateTime.now().plusHours(MIN_HOURS_BEFORE_PUBLICATION_FOR_ADMIN))) {
-                        throw new BusinessRuleViolationException("Event date must be at least 1 hour in the future");
+                        throw new BusinessRuleViolationException(
+                            String.format("Cannot publish the event. Event date must be at least %d hour(s) in the future from the current moment. Event date: %s",
+                                MIN_HOURS_BEFORE_PUBLICATION_FOR_ADMIN, event.getEventDate()));
                     }
                     event.setState(EventState.PUBLISHED);
                     event.setPublishedOn(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
                     break;
                 case REJECT_EVENT:
                     if (event.getState() == EventState.PUBLISHED) {
-                        throw new BusinessRuleViolationException("Cannot reject already published event");
+                        throw new BusinessRuleViolationException(
+                            "Cannot reject the event because it has already been published. Current state: " + event.getState());
                     }
                     event.setState(EventState.CANCELED);
                     break;
                 default:
-                    throw new IllegalArgumentException("Unknown state action: " + requestDto.getStateAction());
+                    log.warn("Admin: Unknown state action for event update: {}", requestDto.getStateAction());
             }
         }
 
-        return eventMapper.toEventFullDto(eventRepository.save(event));
+        Event updatedEvent = eventRepository.save(event);
+        log.info("Admin: Event id={} moderated successfully. New state: {}", eventId, updatedEvent.getState());
+        return eventMapper.toEventFullDto(updatedEvent);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<EventShortDto> getEventsByOwner(Long userId, int from, int size) {
+        log.debug("Fetching events for owner (user) id: {}, from: {}, size: {}", userId, from, size);
+
         if (!userRepository.existsById(userId)) {
+            return Collections.emptyList(); // По спецификации API, если по заданным фильтрам не найдено ни одного события, возвращается пустой список
+        }
+
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.DESC, "eventDate"));
+
+        Page<Event> eventPage = eventRepository.findByInitiatorId(userId, pageable);
+
+        if (eventPage.isEmpty()) {
             return Collections.emptyList();
         }
-        if (size <= 0) {
-            throw new IllegalArgumentException("Size must be greater than 0");
-        }
-        Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.DESC, "eventDate"));
-        Page<Event> eventPage = eventRepository.findByInitiatorId(userId, pageable);
-        return eventPage.isEmpty() ? Collections.emptyList() : eventMapper.toEventShortDtoList(eventPage.getContent());
+
+        List<EventShortDto> result = eventMapper.toEventShortDtoList(eventPage.getContent());
+        log.debug("Found {} events for owner id: {} on page {}/{}", result.size(), userId, pageable.getPageNumber(), eventPage.getTotalPages());
+        return result;
     }
 
     @Override
     public EventFullDto updateEventByOwner(Long userId, Long eventId, UpdateEventUserRequestDto requestDto) {
+        log.info("User id={}: Updating event id={} with data: {}", userId, eventId, requestDto);
+
         Event event = eventRepository.findByIdAndInitiatorId(eventId, userId)
-                .orElseThrow(() -> new EntityNotFoundException("Event", "id", eventId));
+            .orElseThrow(() -> new EntityNotFoundException(
+                String.format("Event with id=%d and initiatorId=%d not found", eventId, userId)));
 
         if (!(event.getState() == EventState.PENDING || event.getState() == EventState.CANCELED)) {
-            throw new BusinessRuleViolationException("Only PENDING or CANCELED events can be updated");
+            throw new BusinessRuleViolationException("Cannot update event: Only pending or canceled events can be changed. Current state: " + event.getState());
         }
 
         if (requestDto.getAnnotation() != null) {
@@ -183,16 +210,16 @@ public class EventServiceImpl implements EventService {
         }
         if (requestDto.getCategory() != null) {
             Category category = categoryRepository.findById(requestDto.getCategory())
-                    .orElseThrow(() -> new EntityNotFoundException("Category", "id", requestDto.getCategory()));
+                .orElseThrow(() -> new EntityNotFoundException("Category with id=" + requestDto.getCategory() + " not found."));
             event.setCategory(category);
         }
         if (requestDto.getDescription() != null) {
             event.setDescription(requestDto.getDescription());
         }
         if (requestDto.getEventDate() != null) {
-            if (requestDto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
-                throw new BusinessRuleViolationException("Event date must be at least 2 hours in the future");
-            }
+             if (requestDto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
+                 throw new BusinessRuleViolationException("Event date must be at least two hours in the future from the current moment.");
+             }
             event.setEventDate(requestDto.getEventDate());
         }
         if (requestDto.getLocation() != null) {
@@ -202,9 +229,6 @@ public class EventServiceImpl implements EventService {
             event.setPaid(requestDto.getPaid());
         }
         if (requestDto.getParticipantLimit() != null) {
-            if (requestDto.getParticipantLimit() < 0) {
-                throw new BusinessRuleViolationException("Participant limit cannot be negative");
-            }
             event.setParticipantLimit(requestDto.getParticipantLimit());
         }
         if (requestDto.getRequestModeration() != null) {
@@ -223,50 +247,48 @@ public class EventServiceImpl implements EventService {
                     event.setState(EventState.CANCELED);
                     break;
                 default:
-                    throw new IllegalArgumentException("Unknown state action: " + requestDto.getStateAction());
+                    log.warn("Unknown state action for user update: {}", requestDto.getStateAction());
             }
         }
 
-        return eventMapper.toEventFullDto(eventRepository.save(event));
+        Event updatedEvent = eventRepository.save(event);
+        log.info("User id={}: Event id={} updated successfully.", userId, eventId);
+        return eventMapper.toEventFullDto(updatedEvent);
     }
 
     @Override
     @Transactional(readOnly = true)
     public EventFullDto getEventPrivate(Long userId, Long eventId) {
+        log.debug("Fetching event id: {} for user id: {}", eventId, userId);
+
         Event event = eventRepository.findByIdAndInitiatorId(eventId, userId)
-                .orElseThrow(() -> new EntityNotFoundException("Event", "id", eventId));
-        return eventMapper.toEventFullDto(event);
+            .orElseThrow(() -> new EntityNotFoundException(
+                String.format("Event with id=%d and initiatorId=%d not found", eventId, userId)));
+
+        EventFullDto result = eventMapper.toEventFullDto(event);
+        log.debug("Found event: {}", result);
+        return result;
     }
 
     @Override
     public EventFullDto addEventPrivate(Long userId, NewEventDto newEventDto) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User", "id", userId));
-        Category category = categoryRepository.findById(newEventDto.getCategory())
-                .orElseThrow(() -> new EntityNotFoundException("Category", "id", newEventDto.getCategory()));
 
-        if (newEventDto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
-            throw new BusinessRuleViolationException("Event date must be at least 2 hours in the future");
-        }
-        if (newEventDto.getParticipantLimit() != null && newEventDto.getParticipantLimit() < 0) {
-            throw new BusinessRuleViolationException("Participant limit cannot be negative");
+        log.info("Добавление события {} пользователем {}", newEventDto, userId);
+
+        User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("Пользователь " +
+                "с id = " + userId + " не найден"));
+
+        Long categoryId = newEventDto.getCategory();
+        Category category = categoryRepository.findById(categoryId).orElseThrow(() -> new EntityNotFoundException("Категория " +
+                "с id = " + categoryId + " не найдена"));
+
+        LocalDateTime eventDate = newEventDto.getEventDate();
+        if (eventDate.isBefore(LocalDateTime.now().plusHours(2))) {
+            throw new BusinessRuleViolationException("Дата должна быть не ранее, чем через 2 часа от текущего момента");
         }
 
         Event event = eventMapper.toEvent(newEventDto);
         event.setInitiator(user);
-        event.setCategory(category);
-        event.setCreatedOn(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
-        event.setViews(0L);
         return eventMapper.toEventFullDto(eventRepository.save(event));
-    }
-
-    // Новый метод для увеличения счетчика просмотров
-    @Transactional
-    public void incrementEventViews(Long eventId, String ip) {
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new EntityNotFoundException("Event", "id", eventId));
-        // Здесь можно добавить логику проверки уникальности IP, если требуется
-        event.setViews(event.getViews() + 1);
-        eventRepository.save(event);
     }
 }
