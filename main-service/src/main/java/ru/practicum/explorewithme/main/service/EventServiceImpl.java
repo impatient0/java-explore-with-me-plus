@@ -156,7 +156,6 @@ public class EventServiceImpl implements EventService {
         BooleanBuilder predicate = new BooleanBuilder();
 
         if (users != null && !users.isEmpty()) {
-            // TODO: Возможно, стоит проверить, существуют ли такие пользователи, если это требуется по логике
             predicate.and(qEvent.initiator.id.in(users));
         }
 
@@ -165,16 +164,15 @@ public class EventServiceImpl implements EventService {
         }
 
         if (categories != null && !categories.isEmpty()) {
-            // TODO: Возможно, стоит проверить, существуют ли такие категории
             predicate.and(qEvent.category.id.in(categories));
         }
 
         if (rangeStart != null) {
-            predicate.and(qEvent.eventDate.goe(rangeStart)); // greater or equal
+            predicate.and(qEvent.eventDate.goe(rangeStart));
         }
 
         if (rangeEnd != null) {
-            predicate.and(qEvent.eventDate.loe(rangeEnd)); // lower or equal
+            predicate.and(qEvent.eventDate.loe(rangeEnd));
         }
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.ASC, "id"));
