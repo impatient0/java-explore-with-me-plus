@@ -126,7 +126,7 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new EntityNotFoundException("Event with id=" + eventId + " not found."));
 
         if (event.getState() != EventState.PUBLISHED) {
-            throw new BusinessRuleViolationException("Event with id=" + eventId + " is not published.");
+            throw new EntityNotFoundException("Event with id=" + eventId + " is not published.");
         }
 
         // TODO: Реализовать логику учета просмотров через ipAddress (StatsClient)
