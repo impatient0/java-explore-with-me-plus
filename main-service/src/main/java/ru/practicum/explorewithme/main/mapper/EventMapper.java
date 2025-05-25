@@ -1,42 +1,36 @@
 package ru.practicum.explorewithme.main.mapper;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.Mappings;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
 import ru.practicum.explorewithme.main.dto.EventShortDto;
 import ru.practicum.explorewithme.main.dto.NewEventDto;
 import ru.practicum.explorewithme.main.model.Event;
 
-@Mapper(componentModel = "spring", uses = {CategoryMapper.class, UserMapper.class})
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Mapper(componentModel = "spring")
 public interface EventMapper {
 
-    @Mappings({
-        @Mapping(source = "category", target = "category"),
-        @Mapping(source = "initiator", target = "initiator"),
-        @Mapping(target = "confirmedRequests", expression = "java(0L)"), // Заглушка
-        @Mapping(target = "views", expression = "java(0L)") // Заглушка
-    })
+    @Mapping(target = "eventDate", dateFormat = "yyyy-MM-dd'T'HH:mm:ss")
     EventFullDto toEventFullDto(Event event);
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "publishedOn", ignore = true)
-    @Mapping(target = "compilations", ignore = true)
-    @Mapping(target = "initiator", ignore = true)
-    @Mapping(source = "category", target = "category")
-    @Mapping(target = "state", expression = "java(ru.practicum.explorewithme.main.model.EventState.PENDING)")
-    Event toEvent(NewEventDto newEventDto);
+    @Mapping(target = "eventDate", dateFormat = "yyyy-MM-dd'T'HH:mm:ss")
+    EventShortDto toEventShortDto(Event event);
 
     List<EventFullDto> toEventFullDtoList(List<Event> events);
 
-    @Mappings({
-        @Mapping(source = "category", target = "category"),
-        @Mapping(source = "initiator", target = "initiator"),
-        @Mapping(target = "confirmedRequests", expression = "java(0L)"), // Заглушка
-        @Mapping(target = "views", expression = "java(0L)") // Заглушка
-    })
-    EventShortDto toEventShortDto(Event event);
-
     List<EventShortDto> toEventShortDtoList(List<Event> events);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "initiator", ignore = true)
+    @Mapping(target = "category", ignore = true)
+    @Mapping(target = "createdOn", ignore = true)
+    @Mapping(target = "publishedOn", ignore = true)
+    @Mapping(target = "state", ignore = true)
+    @Mapping(target = "views", ignore = true)
+    @Mapping(target = "confirmedRequests", ignore = true)
+    Event toEvent(NewEventDto newEventDto);
 }
