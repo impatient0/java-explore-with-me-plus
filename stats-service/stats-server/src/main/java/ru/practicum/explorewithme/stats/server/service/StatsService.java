@@ -26,4 +26,19 @@ public interface StatsService {
      */
     List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end, List<String> uris, boolean unique);
 
+    /**
+     * Увеличивает счетчик просмотров для события.
+     *
+     * @param eventId ID события.
+     * @param ipAddress IP-адрес клиента.
+     */
+    void incrementView(Long eventId, String ipAddress);
+
+    /**
+     * Получает количество просмотров для события.
+     *
+     * @param eventId ID события.
+     * @return Количество просмотров.
+     */
+    Long getViewsForEvent(Long eventId);
 }

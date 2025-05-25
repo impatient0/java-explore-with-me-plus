@@ -37,17 +37,16 @@ public class StatsServiceImpl implements StatsService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end, List<String> urisFromController, boolean unique) {
+    public List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end, List<String> uris, boolean unique) {
         log.debug("Service: Requesting stats with params: start={}, end={}, uris={}, unique={}",
-            start, end, urisFromController, unique);
+                start, end, uris, unique);
 
         if (start != null && end != null && start.isAfter(end)) {
             log.warn("Validation error in getStats: Start date {} is after end date {}", start, end);
             throw new IllegalArgumentException("Error: Start date cannot be after end date.");
         }
 
-        // Пустой список URI явно конвертируется в null для обработки репозиторием
-        Collection<String> urisForRepo = (urisFromController == null || urisFromController.isEmpty()) ? null : urisFromController;
+        Collection<String> urisForRepo = (uris == null || uris.isEmpty()) ? null : uris;
 
         List<ViewStatsDto> stats;
         if (unique) {
@@ -57,5 +56,36 @@ public class StatsServiceImpl implements StatsService {
         }
         log.info("Service: Found {} stats entries.", stats.size());
         return stats;
+    }
+
+    @Override
+    @Transactional
+    public void incrementView(Long eventId, String ipAddress) {
+        log.debug("Service: Incrementing view for eventId={} from IP={}", eventId, ipAddress);
+        EndpointHitDto hitDto = EndpointHitDto.builder()
+                .app("explore-with-me")
+                .uri("/events/" + eventId)
+                .ip(ipAddress)
+                .timestamp(LocalDateTime.now())
+                .build();
+        saveHit(hitDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getViewsForEvent(Long eventId) {
+        log.debug("Service: Fetching views for eventId={}", eventId);
+        List<String> uris = List.of("/events/" + eventId);
+        List<ViewStatsDto> stats = getStats(
+                LocalDateTime.now().minusYears(100), // Far past to include all views
+                LocalDateTime.now(),
+                uris,
+                false
+        );
+        return stats.stream()
+                .filter(stat -> stat.getUri().equals("/events/" + eventId))
+                .map(ViewStatsDto::getHits)
+                .findFirst()
+                .orElse(0L);
     }
 }

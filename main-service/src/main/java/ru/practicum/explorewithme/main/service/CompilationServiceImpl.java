@@ -2,6 +2,7 @@ package ru.practicum.explorewithme.main.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,8 +15,11 @@ import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.mapper.CompilationMapper;
 import ru.practicum.explorewithme.main.model.Compilation;
 import ru.practicum.explorewithme.main.model.Event;
+import ru.practicum.explorewithme.main.model.RequestStatus;
 import ru.practicum.explorewithme.main.repository.CompilationRepository;
 import ru.practicum.explorewithme.main.repository.EventRepository;
+import ru.practicum.explorewithme.main.repository.RequestRepository;
+import ru.practicum.explorewithme.stats.server.service.StatsService;
 
 import java.util.HashSet;
 import java.util.List;
@@ -31,24 +35,23 @@ public class CompilationServiceImpl implements CompilationService {
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
     private final CompilationMapper compilationMapper;
+    private final RequestRepository requestRepository;
+    private final StatsService statsService;
 
+    @Override
     @Transactional(readOnly = true)
-    public List<CompilationDto> getCompilations(Boolean pinned, Pageable pageable) {
-        log.debug("Fetching compilations with pinned={} and pageable={}", pinned, pageable);
+    public List<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {
+        log.debug("Fetching compilations with pinned={}, from={}, size={}", pinned, from, size);
+        Pageable pageable = PageRequest.of(from / size, size);
         List<Compilation> compilations = (pinned != null)
                 ? compilationRepository.findByPinned(pinned, pageable)
-                : (List<Compilation>) compilationRepository.findAll(pageable);
+                : compilationRepository.findAll(pageable).getContent();
         List<CompilationDto> result = compilations.stream()
                 .map(compilationMapper::toDto)
                 .map(this::addConfirmedRequestsAndViews)
                 .collect(Collectors.toList());
         log.debug("Found {} compilations", result.size());
         return result;
-    }
-
-    @Override
-    public List<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {
-        return List.of();
     }
 
     @Override
@@ -75,7 +78,7 @@ public class CompilationServiceImpl implements CompilationService {
                 : new HashSet<>();
         compilation.setEvents(events);
 
-        Compilation savedCompilation = compilationRepository.save(compilation);
+        Compilation savedCompilation = compilationRepository.saveAndFlush(compilation);
         CompilationDto result = compilationMapper.toDto(savedCompilation);
         log.info("Compilation created successfully: {}", result);
         return addConfirmedRequestsAndViews(result);
@@ -134,10 +137,10 @@ public class CompilationServiceImpl implements CompilationService {
     private CompilationDto addConfirmedRequestsAndViews(CompilationDto compilationDto) {
         if (compilationDto.getEvents() != null) {
             for (EventShortDto eventDto : compilationDto.getEvents()) {
-                // Заглушка для confirmedRequests, так как RequestRepository отсутствует
-                eventDto.setConfirmedRequests(0L);
-                // Заглушка для views, так как StatsClient отсутствует
-                eventDto.setViews(0L);
+                Long confirmedRequests = requestRepository.countByEventIdAndStatus(eventDto.getId(), RequestStatus.CONFIRMED);
+                eventDto.setConfirmedRequests(confirmedRequests);
+                Long views = statsService.getViewsForEvent(eventDto.getId());
+                eventDto.setViews(views);
             }
         }
         return compilationDto;

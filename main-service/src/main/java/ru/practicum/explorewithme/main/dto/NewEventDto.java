@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -43,6 +44,7 @@ public class NewEventDto {
     Boolean paid = false;
 
     @Builder.Default
+    @PositiveOrZero(message = "Participant limit must be positive or zero")
     Long participantLimit = 0L;
 
     @Builder.Default
