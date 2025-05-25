@@ -1,6 +1,7 @@
 package ru.practicum.explorewithme.main.controller.admin;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -32,7 +33,7 @@ public class AdminCompilationController {
     @PatchMapping("/{compId}")
     @ResponseStatus(HttpStatus.OK)
     public CompilationDto updateCompilation(
-            @PathVariable Long compId,
+            @PathVariable @Positive Long compId,
             @Valid @RequestBody UpdateCompilationRequestDto updateCompilationRequestDto) {
         log.info("Admin: Received request to update compilation id={} with data: {}", compId, updateCompilationRequestDto);
         CompilationDto result = compilationService.updateCompilation(compId, updateCompilationRequestDto);
@@ -42,7 +43,7 @@ public class AdminCompilationController {
 
     @DeleteMapping("/{compId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteCompilation(@PathVariable Long compId) {
+    public void deleteCompilation(@PathVariable @Positive Long compId) {
         log.info("Admin: Received request to delete compilation with id={}", compId);
         compilationService.deleteCompilation(compId);
         log.info("Admin: Deleted compilation with id={}", compId);
