@@ -7,6 +7,7 @@ import ru.practicum.explorewithme.main.dto.UpdateEventAdminRequestDto;
 import ru.practicum.explorewithme.main.dto.UpdateEventUserRequestDto;
 import ru.practicum.explorewithme.main.service.params.AdminEventSearchParams;
 import ru.practicum.explorewithme.main.dto.NewEventDto;
+import ru.practicum.explorewithme.main.service.params.PublicEventSearchParams;
 
 public interface EventService {
     List<EventFullDto> getEventsAdmin(
@@ -24,4 +25,8 @@ public interface EventService {
     EventFullDto updateEventByOwner(Long userId, Long eventId, UpdateEventUserRequestDto requestDto);
 
     EventFullDto moderateEventByAdmin(Long eventId, UpdateEventAdminRequestDto requestDto);
+
+    List<EventShortDto> getEventsPublic(PublicEventSearchParams params, int from, int size, String ipAddress);
+
+    EventFullDto getEventByIdPublic(Long eventId, String ipAddress);
 }
