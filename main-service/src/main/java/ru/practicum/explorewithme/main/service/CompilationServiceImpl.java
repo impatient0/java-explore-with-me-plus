@@ -2,6 +2,7 @@ package ru.practicum.explorewithme.main.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +38,7 @@ public class CompilationServiceImpl implements CompilationService {
         log.debug("Fetching compilations with pinned={} and pageable={}", pinned, pageable);
         List<Compilation> compilations = (pinned != null)
                 ? compilationRepository.findByPinned(pinned, pageable)
-                : (List<Compilation>) compilationRepository.findAll(pageable);
+                : compilationRepository.findAll(pageable).getContent();
         List<CompilationDto> result = compilations.stream()
                 .map(compilationMapper::toDto)
                 .map(this::addConfirmedRequestsAndViews)
@@ -47,8 +48,19 @@ public class CompilationServiceImpl implements CompilationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {
-        return List.of();
+        log.debug("Fetching compilations with pinned={}, from={}, size={}", pinned, from, size);
+        Pageable pageable = PageRequest.of(from / size, size);
+        List<Compilation> compilations = (pinned != null)
+                ? compilationRepository.findByPinned(pinned, pageable)
+                : compilationRepository.findAll(pageable).getContent();
+        List<CompilationDto> result = compilations.stream()
+                .map(compilationMapper::toDto)
+                .map(this::addConfirmedRequestsAndViews)
+                .collect(Collectors.toList());
+        log.debug("Found {} compilations", result.size());
+        return result;
     }
 
     @Override
@@ -134,9 +146,7 @@ public class CompilationServiceImpl implements CompilationService {
     private CompilationDto addConfirmedRequestsAndViews(CompilationDto compilationDto) {
         if (compilationDto.getEvents() != null) {
             for (EventShortDto eventDto : compilationDto.getEvents()) {
-                // Заглушка для confirmedRequests, так как RequestRepository отсутствует
                 eventDto.setConfirmedRequests(0L);
-                // Заглушка для views, так как StatsClient отсутствует
                 eventDto.setViews(0L);
             }
         }
