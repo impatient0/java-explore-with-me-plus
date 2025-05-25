@@ -207,9 +207,6 @@ public class EventServiceImpl implements EventService {
             event.setDescription(requestDto.getDescription());
         }
         if (requestDto.getEventDate() != null) {
-            if (requestDto.getEventDate().isBefore(LocalDateTime.now().plusHours(MIN_HOURS_BEFORE_PUBLICATION_FOR_ADMIN))) {
-                throw new IllegalArgumentException("Event date must be at least one hour in the future from the current moment.");
-            }
             event.setEventDate(requestDto.getEventDate());
         }
         if (requestDto.getLocation() != null) {
@@ -307,7 +304,7 @@ public class EventServiceImpl implements EventService {
         }
         if (requestDto.getEventDate() != null) {
             if (requestDto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
-                throw new BusinessRuleViolationException("Event date must be at least two hours in the future from the current moment.");
+                throw new IllegalArgumentException("Event date must be at least two hours in the future from the current moment.");
             }
             event.setEventDate(requestDto.getEventDate());
         }
@@ -372,11 +369,12 @@ public class EventServiceImpl implements EventService {
 
         LocalDateTime eventDate = newEventDto.getEventDate();
         if (eventDate.isBefore(LocalDateTime.now().plusHours(2))) {
-            throw new BusinessRuleViolationException("Дата должна быть не ранее, чем через 2 часа от текущего момента");
+            throw new IllegalArgumentException("Дата должна быть не ранее, чем через 2 часа от текущего момента");
         }
 
         Event event = eventMapper.toEvent(newEventDto);
         event.setInitiator(user);
+        event.setCategory(category); // Устанавливаем категорию
         return eventMapper.toEventFullDto(eventRepository.save(event));
     }
 }
