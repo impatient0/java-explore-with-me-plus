@@ -207,6 +207,9 @@ public class EventServiceImpl implements EventService {
             event.setDescription(requestDto.getDescription());
         }
         if (requestDto.getEventDate() != null) {
+            if (requestDto.getEventDate().isBefore(LocalDateTime.now().plusHours(MIN_HOURS_BEFORE_PUBLICATION_FOR_ADMIN))) {
+                throw new IllegalArgumentException("Event date must be at least one hour in the future from the current moment.");
+            }
             event.setEventDate(requestDto.getEventDate());
         }
         if (requestDto.getLocation() != null) {
