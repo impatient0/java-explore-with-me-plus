@@ -5,6 +5,7 @@ import static ru.practicum.explorewithme.common.constants.DateTimeConstants.DATE
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
@@ -21,6 +22,7 @@ public class StatsClientImpl implements StatsClient {
 
     private final RestClient restClient;
 
+    @Autowired
     public StatsClientImpl(@Value("${stats-server.url}") String statsServerUrl) {
         this.restClient = RestClient.builder()
                 .baseUrl(statsServerUrl)
