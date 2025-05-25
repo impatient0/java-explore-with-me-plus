@@ -1,6 +1,5 @@
 package ru.practicum.explorewithme.main.dto;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -12,7 +11,6 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Valid
 public class NewCompilationDto {
     @Builder.Default
     private Boolean pinned = false;

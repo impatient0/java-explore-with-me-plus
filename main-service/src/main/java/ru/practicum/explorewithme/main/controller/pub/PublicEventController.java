@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
 import ru.practicum.explorewithme.main.dto.EventShortDto;
@@ -20,6 +21,7 @@ import static ru.practicum.explorewithme.common.constants.DateTimeConstants.DATE
 @RestController
 @RequestMapping("/events")
 @RequiredArgsConstructor
+@Validated
 @Slf4j
 public class PublicEventController {
 
