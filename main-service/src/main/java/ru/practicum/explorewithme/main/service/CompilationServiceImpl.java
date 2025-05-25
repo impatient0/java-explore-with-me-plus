@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.explorewithme.main.dto.CompilationDto;
 import ru.practicum.explorewithme.main.dto.NewCompilationDto;
 import ru.practicum.explorewithme.main.dto.UpdateCompilationRequestDto;
+import ru.practicum.explorewithme.main.dto.EventShortDto;
 import ru.practicum.explorewithme.main.error.EntityAlreadyExistsException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.mapper.CompilationMapper;
@@ -31,7 +32,6 @@ public class CompilationServiceImpl implements CompilationService {
     private final EventRepository eventRepository;
     private final CompilationMapper compilationMapper;
 
-    @Override
     @Transactional(readOnly = true)
     public List<CompilationDto> getCompilations(Boolean pinned, Pageable pageable) {
         log.debug("Fetching compilations with pinned={} and pageable={}", pinned, pageable);
@@ -40,9 +40,15 @@ public class CompilationServiceImpl implements CompilationService {
                 : (List<Compilation>) compilationRepository.findAll(pageable);
         List<CompilationDto> result = compilations.stream()
                 .map(compilationMapper::toDto)
+                .map(this::addConfirmedRequestsAndViews)
                 .collect(Collectors.toList());
         log.debug("Found {} compilations", result.size());
         return result;
+    }
+
+    @Override
+    public List<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {
+        return List.of();
     }
 
     @Override
@@ -53,7 +59,7 @@ public class CompilationServiceImpl implements CompilationService {
                 .orElseThrow(() -> new EntityNotFoundException("Compilation", "Id", compId));
         CompilationDto result = compilationMapper.toDto(compilation);
         log.debug("Found compilation: {}", result);
-        return result;
+        return addConfirmedRequestsAndViews(result);
     }
 
     @Override
@@ -72,7 +78,7 @@ public class CompilationServiceImpl implements CompilationService {
         Compilation savedCompilation = compilationRepository.save(compilation);
         CompilationDto result = compilationMapper.toDto(savedCompilation);
         log.info("Compilation created successfully: {}", result);
-        return result;
+        return addConfirmedRequestsAndViews(result);
     }
 
     @Override
@@ -104,7 +110,7 @@ public class CompilationServiceImpl implements CompilationService {
         Compilation updatedCompilation = compilationRepository.save(compilation);
         CompilationDto result = compilationMapper.toDto(updatedCompilation);
         log.info("Compilation updated successfully: {}", result);
-        return result;
+        return addConfirmedRequestsAndViews(result);
     }
 
     @Override
@@ -123,5 +129,17 @@ public class CompilationServiceImpl implements CompilationService {
             throw new EntityNotFoundException("Some events not found for IDs: " + eventIds);
         }
         return new HashSet<>(events);
+    }
+
+    private CompilationDto addConfirmedRequestsAndViews(CompilationDto compilationDto) {
+        if (compilationDto.getEvents() != null) {
+            for (EventShortDto eventDto : compilationDto.getEvents()) {
+                // Заглушка для confirmedRequests, так как RequestRepository отсутствует
+                eventDto.setConfirmedRequests(0L);
+                // Заглушка для views, так как StatsClient отсутствует
+                eventDto.setViews(0L);
+            }
+        }
+        return compilationDto;
     }
 }

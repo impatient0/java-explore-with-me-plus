@@ -1,15 +1,18 @@
 package ru.practicum.explorewithme.main.dto;
 
 import lombok.*;
-import java.util.List;
+import lombok.experimental.FieldDefaults;
 
-@Data
-@Builder
-@NoArgsConstructor
+import java.util.Set;
+
+@Getter
+@Setter
 @AllArgsConstructor
+@NoArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class CompilationDto {
-    private Long id;
-    private Boolean pinned;
-    private String title;
-    private List<EventShortDto> events;
+    Long id;
+    Boolean pinned;
+    String title;
+    Set<EventShortDto> events;
 }
