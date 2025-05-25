@@ -20,6 +20,7 @@ import ru.practicum.explorewithme.main.service.params.EventRequestStatusUpdateRe
 
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+import ru.practicum.explorewithme.main.service.params.EventRequestStatusUpdateRequestParams;
 
 import java.util.List;
 
@@ -45,9 +46,9 @@ public class PrivateEventController {
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public List<EventShortDto> getEventsAddedByCurrentUser(
-            @PathVariable Long userId,
-            @RequestParam(name = "from", defaultValue = "0") @PositiveOrZero int from,
-            @RequestParam(name = "size", defaultValue = "10") @Positive int size) {
+        @PathVariable Long userId,
+        @RequestParam(name = "from", defaultValue = "0") @PositiveOrZero int from,
+        @RequestParam(name = "size", defaultValue = "10") @Positive int size) {
 
         log.info("User id={}: Received request to get own events, from={}, size={}", userId, from, size);
         List<EventShortDto> events = eventService.getEventsByOwner(userId, from, size);
@@ -66,8 +67,8 @@ public class PrivateEventController {
     @GetMapping("/{eventId}")
     @ResponseStatus(HttpStatus.OK)
     public EventFullDto getFullEventInfoByOwner(
-            @PathVariable Long userId,
-            @PathVariable Long eventId) {
+        @PathVariable Long userId,
+        @PathVariable Long eventId) {
 
         log.info("User id={}: Received request to get full info for event id={}", userId, eventId);
         EventFullDto eventFullDto = eventService.getEventPrivate(userId, eventId);
@@ -85,9 +86,7 @@ public class PrivateEventController {
      * @return ResponseEntity с EventFullDto созданного события и статусом HTTP 201 CREATED
      */
     @PostMapping
-    public ResponseEntity<EventFullDto> addEventPrivate(
-            @PathVariable Long userId,
-            @Valid @RequestBody NewEventDto newEventDto) {
+    public ResponseEntity<EventFullDto> addEventPrivate(@PathVariable Long userId, @Valid @RequestBody NewEventDto newEventDto) {
         log.info("Создание нового события {} зарегистрированным пользователем c id {}", newEventDto, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(eventService.addEventPrivate(userId, newEventDto));
     }
@@ -108,19 +107,20 @@ public class PrivateEventController {
     @PatchMapping("/{eventId}")
     @ResponseStatus(HttpStatus.OK)
     public EventFullDto updateEventByOwner(
-            @PathVariable Long userId,
-            @PathVariable Long eventId,
-            @Valid @RequestBody UpdateEventUserRequestDto updateEventUserRequestDto) {
+        @PathVariable Long userId,
+        @PathVariable Long eventId,
+        @Valid @RequestBody UpdateEventUserRequestDto updateEventUserRequestDto) {
 
         log.info("User id={}: Received request to update event id={} with data: {}",
-                userId, eventId, updateEventUserRequestDto);
+            userId, eventId, updateEventUserRequestDto);
 
         EventFullDto updatedEvent = eventService.updateEventByOwner(userId, eventId, updateEventUserRequestDto);
 
         log.info("User id={}: Event id={} updated successfully. New title: {}",
-                userId, eventId, updatedEvent.getTitle());
+            userId, eventId, updatedEvent.getTitle());
         return updatedEvent;
     }
+
 
     @GetMapping("/{eventId}/requests")
     @ResponseStatus(HttpStatus.OK)
@@ -132,6 +132,7 @@ public class PrivateEventController {
         log.info("Private: Received list requests for event {} when initiator {} : {}", eventId, userId, result);
         return result;
     }
+
 
     @PatchMapping("/{eventId}/requests")
     @ResponseStatus(HttpStatus.OK)
@@ -151,4 +152,5 @@ public class PrivateEventController {
         log.info("Private: Received list requests for event {} when initiator {} : {}", eventId, userId, result);
         return result;
     }
+
 }

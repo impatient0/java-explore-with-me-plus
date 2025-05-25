@@ -6,7 +6,6 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,16 +22,17 @@ import ru.practicum.explorewithme.main.dto.UpdateEventAdminRequestDto;
 import ru.practicum.explorewithme.main.dto.UpdateEventUserRequestDto;
 import ru.practicum.explorewithme.main.error.BusinessRuleViolationException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
-import ru.practicum.explorewithme.main.error.ValidationException;
 import ru.practicum.explorewithme.main.mapper.EventMapper;
-import ru.practicum.explorewithme.main.model.*;
+import ru.practicum.explorewithme.main.model.Category;
+import ru.practicum.explorewithme.main.model.Event;
+import ru.practicum.explorewithme.main.model.EventState;
+import ru.practicum.explorewithme.main.model.QEvent;
+import ru.practicum.explorewithme.main.model.User;
 import ru.practicum.explorewithme.main.repository.CategoryRepository;
 import ru.practicum.explorewithme.main.repository.EventRepository;
-import ru.practicum.explorewithme.main.repository.RequestRepository;
 import ru.practicum.explorewithme.main.repository.UserRepository;
 import ru.practicum.explorewithme.main.service.params.AdminEventSearchParams;
 import ru.practicum.explorewithme.main.service.params.PublicEventSearchParams;
-import ru.practicum.explorewithme.stats.server.service.StatsService;
 
 @Service
 @RequiredArgsConstructor
@@ -44,8 +44,6 @@ public class EventServiceImpl implements EventService {
     private final EventMapper eventMapper;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
-    private final RequestRepository requestRepository;
-    private final StatsService statsService;
 
     private static final long MIN_HOURS_BEFORE_PUBLICATION_FOR_ADMIN = 1;
 
@@ -97,6 +95,7 @@ public class EventServiceImpl implements EventService {
         }
 
         if (onlyAvailable) {
+            // Заглушка: проверка на доступность (participantLimit > confirmedRequests)
             predicate.and(qEvent.participantLimit.eq(0));
         }
 
@@ -112,6 +111,7 @@ public class EventServiceImpl implements EventService {
             return Collections.emptyList();
         }
 
+        // TODO: Реализовать логику учета просмотров через ipAddress (StatsClient)
         List<EventShortDto> result = eventMapper.toEventShortDtoList(eventPage.getContent());
         log.debug("Public search found {} events", result.size());
         return result;
@@ -126,14 +126,11 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new EntityNotFoundException("Event with id=" + eventId + " not found."));
 
         if (event.getState() != EventState.PUBLISHED) {
-            throw new EntityNotFoundException("Event with id=" + eventId + " is not published.");
+            throw new BusinessRuleViolationException("Event with id=" + eventId + " is not published.");
         }
 
-        if (ipAddress != null && !ipAddress.isBlank()) {
-            statsService.incrementView(eventId, ipAddress);
-        }
+        // TODO: Реализовать логику учета просмотров через ipAddress (StatsClient)
         EventFullDto result = eventMapper.toEventFullDto(event);
-        result.setViews(statsService.getViewsForEvent(eventId));
         log.debug("Public: Found event: {}", result);
         return result;
     }
@@ -159,6 +156,7 @@ public class EventServiceImpl implements EventService {
         BooleanBuilder predicate = new BooleanBuilder();
 
         if (users != null && !users.isEmpty()) {
+            // TODO: Возможно, стоит проверить, существуют ли такие пользователи, если это требуется по логике
             predicate.and(qEvent.initiator.id.in(users));
         }
 
@@ -167,15 +165,16 @@ public class EventServiceImpl implements EventService {
         }
 
         if (categories != null && !categories.isEmpty()) {
+            // TODO: Возможно, стоит проверить, существуют ли такие категории
             predicate.and(qEvent.category.id.in(categories));
         }
 
         if (rangeStart != null) {
-            predicate.and(qEvent.eventDate.goe(rangeStart));
+            predicate.and(qEvent.eventDate.goe(rangeStart)); // greater or equal
         }
 
         if (rangeEnd != null) {
-            predicate.and(qEvent.eventDate.loe(rangeEnd));
+            predicate.and(qEvent.eventDate.loe(rangeEnd)); // lower or equal
         }
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.ASC, "id"));
@@ -186,14 +185,7 @@ public class EventServiceImpl implements EventService {
             return Collections.emptyList();
         }
 
-        List<EventFullDto> result = eventPage.getContent().stream()
-                .map(event -> {
-                    EventFullDto dto = eventMapper.toEventFullDto(event);
-                    Long confirmedRequests = requestRepository.countByEventIdAndStatus(event.getId(), RequestStatus.CONFIRMED);
-                    dto.setConfirmedRequests(confirmedRequests);
-                    return dto;
-                })
-                .collect(Collectors.toList());
+        List<EventFullDto> result = eventMapper.toEventFullDtoList(eventPage.getContent());
         log.debug("Admin search found {} events on page {}/{}", result.size(), pageable.getPageNumber(), eventPage.getTotalPages());
         return result;
     }
@@ -204,10 +196,6 @@ public class EventServiceImpl implements EventService {
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event with id=" + eventId + " not found."));
-
-        if (requestDto.getEventDate() != null && requestDto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
-            throw new ValidationException("Event date must be at least two hours in the future");
-        }
 
         if (requestDto.getAnnotation() != null) {
             event.setAnnotation(requestDto.getAnnotation());
@@ -277,7 +265,7 @@ public class EventServiceImpl implements EventService {
         log.debug("Fetching events for owner (user) id: {}, from: {}, size: {}", userId, from, size);
 
         if (!userRepository.existsById(userId)) {
-            return Collections.emptyList();
+            return Collections.emptyList(); // По спецификации API, если по заданным фильтрам не найдено ни одного события, возвращается пустой список
         }
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.DESC, "eventDate"));
@@ -305,10 +293,6 @@ public class EventServiceImpl implements EventService {
             throw new BusinessRuleViolationException("Cannot update event: Only pending or canceled events can be changed. Current state: " + event.getState());
         }
 
-        if (requestDto.getEventDate() != null && requestDto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
-            throw new ValidationException("Event date must be at least two hours in the future");
-        }
-
         if (requestDto.getAnnotation() != null) {
             event.setAnnotation(requestDto.getAnnotation());
         }
@@ -321,6 +305,9 @@ public class EventServiceImpl implements EventService {
             event.setDescription(requestDto.getDescription());
         }
         if (requestDto.getEventDate() != null) {
+            if (requestDto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
+                throw new BusinessRuleViolationException("Event date must be at least two hours in the future from the current moment.");
+            }
             event.setEventDate(requestDto.getEventDate());
         }
         if (requestDto.getLocation() != null) {
@@ -375,14 +362,6 @@ public class EventServiceImpl implements EventService {
     public EventFullDto addEventPrivate(Long userId, NewEventDto newEventDto) {
         log.info("Добавление события {} пользователем {}", newEventDto, userId);
 
-        if (newEventDto.getParticipantLimit() != null && newEventDto.getParticipantLimit() < 0) {
-            throw new ValidationException("Participant limit must be positive or zero");
-        }
-
-        if (newEventDto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
-            throw new ValidationException("Event date must be at least two hours in the future");
-        }
-
         User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("Пользователь " +
                 "с id = " + userId + " не найден"));
 
@@ -390,9 +369,13 @@ public class EventServiceImpl implements EventService {
         Category category = categoryRepository.findById(categoryId).orElseThrow(() -> new EntityNotFoundException("Категория " +
                 "с id = " + categoryId + " не найдена"));
 
+        LocalDateTime eventDate = newEventDto.getEventDate();
+        if (eventDate.isBefore(LocalDateTime.now().plusHours(2))) {
+            throw new BusinessRuleViolationException("Дата должна быть не ранее, чем через 2 часа от текущего момента");
+        }
+
         Event event = eventMapper.toEvent(newEventDto);
         event.setInitiator(user);
-        event.setCategory(category);
         return eventMapper.toEventFullDto(eventRepository.save(event));
     }
 }

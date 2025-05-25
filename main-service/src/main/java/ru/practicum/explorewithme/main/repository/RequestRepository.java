@@ -1,6 +1,5 @@
 package ru.practicum.explorewithme.main.repository;
 
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -17,8 +16,7 @@ public interface RequestRepository extends JpaRepository<ParticipationRequest, L
 
     boolean existsByEvent_IdAndRequester_Id(Long requestEventId, Long userId);
 
-    @Query("SELECT COUNT(r) FROM ParticipationRequest r WHERE r.event.id = :eventId AND r.status = :status")
-    Long countByEventIdAndStatus(@Param("eventId") Long eventId, @Param("status") RequestStatus status);
+    int countByEvent_IdAndStatusEquals(Long eventId, RequestStatus status);
 
     List<ParticipationRequest> findByRequester_Id(Long userId);
 

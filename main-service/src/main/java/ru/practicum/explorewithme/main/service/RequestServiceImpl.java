@@ -94,7 +94,7 @@ public class RequestServiceImpl implements RequestService {
             throw new BusinessRuleViolationException("Not all requests are for event with Id = " + eventId);
         }
         if (requestRepository
-              .countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED) >= event.getParticipantLimit()) {
+              .countByEvent_IdAndStatusEquals(eventId, RequestStatus.CONFIRMED) >= event.getParticipantLimit()) {
             throw new BusinessRuleViolationException("Event participant limit reached");
         }
         LinkedHashMap<Long, ParticipationRequest> requestsMap = requestRepository.findAllByIdIn(requestIdsForUpdate).stream()
@@ -121,8 +121,8 @@ public class RequestServiceImpl implements RequestService {
             return result;
         }
 
-        final int[] availableRequests = {(int) (event.getParticipantLimit() -
-                        requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED))};
+        final int[] availableRequests = {event.getParticipantLimit() -
+                requestRepository.countByEvent_IdAndStatusEquals(eventId, RequestStatus.CONFIRMED)};
         requestsMap.values().forEach(request -> {
              if (availableRequests[0] > 0) {
                  request.setStatus(RequestStatus.CONFIRMED);
@@ -161,7 +161,7 @@ public class RequestServiceImpl implements RequestService {
             throw new BusinessRuleViolationException("Event must be published");
         }
         if (event.getParticipantLimit() > 0 &&
-                requestRepository.countByEventIdAndStatus(requestEventId, RequestStatus.CONFIRMED) >=
+                requestRepository.countByEvent_IdAndStatusEquals(requestEventId, RequestStatus.CONFIRMED) >=
                         event.getParticipantLimit()) {
             throw new BusinessRuleViolationException("Event participant limit reached");
         }
