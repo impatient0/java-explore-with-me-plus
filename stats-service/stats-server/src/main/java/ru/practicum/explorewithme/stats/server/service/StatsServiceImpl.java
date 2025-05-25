@@ -57,35 +57,4 @@ public class StatsServiceImpl implements StatsService {
         log.info("Service: Found {} stats entries.", stats.size());
         return stats;
     }
-
-    @Override
-    @Transactional
-    public void incrementView(Long eventId, String ipAddress) {
-        log.debug("Service: Incrementing view for eventId={} from IP={}", eventId, ipAddress);
-        EndpointHitDto hitDto = EndpointHitDto.builder()
-                .app("explore-with-me")
-                .uri("/events/" + eventId)
-                .ip(ipAddress)
-                .timestamp(LocalDateTime.now())
-                .build();
-        saveHit(hitDto);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Long getViewsForEvent(Long eventId) {
-        log.debug("Service: Fetching views for eventId={}", eventId);
-        List<String> uris = List.of("/events/" + eventId);
-        List<ViewStatsDto> stats = getStats(
-                LocalDateTime.now().minusYears(100), // Far past to include all views
-                LocalDateTime.now(),
-                uris,
-                false
-        );
-        return stats.stream()
-                .filter(stat -> stat.getUri().equals("/events/" + eventId))
-                .map(ViewStatsDto::getHits)
-                .findFirst()
-                .orElse(0L);
-    }
 }

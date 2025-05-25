@@ -7,38 +7,21 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface StatsService {
-
     /**
      * Сохраняет информацию о запросе к эндпоинту.
      *
-     * @param endpointHitDto DTO с информацией о запросе.
+     * @param endpointHitDto DTO с данными о запросе.
      */
     void saveHit(EndpointHitDto endpointHitDto);
 
     /**
-     * Возвращает статистику по посещениям за указанный период.
+     * Получает статистику по посещениям эндпоинтов.
      *
-     * @param start  дата и время начала диапазона для статистики.
-     * @param end    дата и время конца диапазона для статистики.
-     * @param uris   список URI, для которых нужна статистика (может быть null или пустым для всех URI).
-     * @param unique true, если нужны только уникальные по IP посещения, false иначе.
-     * @return список DTO {@link ViewStatsDto} со статистикой.
+     * @param start  Начало периода статистики.
+     * @param end    Конец периода статистики.
+     * @param uris   Список URI для фильтрации статистики.
+     * @param unique Флаг уникальности IP-адресов.
+     * @return Список DTO с данными статистики.
      */
     List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end, List<String> uris, boolean unique);
-
-    /**
-     * Увеличивает счетчик просмотров для события.
-     *
-     * @param eventId ID события.
-     * @param ipAddress IP-адрес клиента.
-     */
-    void incrementView(Long eventId, String ipAddress);
-
-    /**
-     * Получает количество просмотров для события.
-     *
-     * @param eventId ID события.
-     * @return Количество просмотров.
-     */
-    Long getViewsForEvent(Long eventId);
 }
