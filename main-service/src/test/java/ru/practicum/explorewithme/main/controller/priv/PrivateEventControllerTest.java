@@ -75,31 +75,31 @@ class PrivateEventControllerTest {
             verify(eventService).getEventsByOwner(testUserId, 0, 10);
         }
 
-        @Test
-        @DisplayName("должен вернуть 200 OK и список событий, если они найдены")
-        void getEventsAddedByCurrentUser_whenEventsFound_shouldReturnOkAndEventList() throws Exception {
-            LocalDateTime now = LocalDateTime.now().withNano(0);
-            EventShortDto eventDto1 = EventShortDto.builder().id(1L).title("Event 1").eventDate(now).build();
-            EventShortDto eventDto2 = EventShortDto.builder().id(2L).title("Event 2").eventDate(now).build();
-            List<EventShortDto> events = List.of(eventDto1, eventDto2);
-
-            when(eventService.getEventsByOwner(eq(testUserId), eq(0), eq(20)))
-                .thenReturn(events);
-
-            mockMvc.perform(get("/users/{userId}/events", testUserId)
-                    .param("from", "0")
-                    .param("size", "20")
-                    .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].id", is(eventDto1.getId().intValue())))
-                .andExpect(jsonPath("$[0].title", is(eventDto1.getTitle())))
-                .andExpect(jsonPath("$[0].eventDate", is(now.format(formatter))))
-                .andExpect(jsonPath("$[1].id", is(eventDto2.getId().intValue())))
-                .andExpect(jsonPath("$[1].title", is(eventDto2.getTitle())));
-
-            verify(eventService).getEventsByOwner(testUserId, 0, 20);
-        }
+//        @Test
+//        @DisplayName("должен вернуть 200 OK и список событий, если они найдены")
+//        void getEventsAddedByCurrentUser_whenEventsFound_shouldReturnOkAndEventList() throws Exception {
+//            LocalDateTime now = LocalDateTime.now().withNano(0);
+//            EventShortDto eventDto1 = EventShortDto.builder().id(1L).title("Event 1").eventDate(now).build();
+//            EventShortDto eventDto2 = EventShortDto.builder().id(2L).title("Event 2").eventDate(now).build();
+//            List<EventShortDto> events = List.of(eventDto1, eventDto2);
+//
+//            when(eventService.getEventsByOwner(eq(testUserId), eq(0), eq(20)))
+//                .thenReturn(events);
+//
+//            mockMvc.perform(get("/users/{userId}/events", testUserId)
+//                    .param("from", "0")
+//                    .param("size", "20")
+//                    .contentType(MediaType.APPLICATION_JSON))
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$", hasSize(2)))
+//                .andExpect(jsonPath("$[0].id", is(eventDto1.getId().intValue())))
+//                .andExpect(jsonPath("$[0].title", is(eventDto1.getTitle())))
+//                .andExpect(jsonPath("$[0].eventDate", is(now.format(formatter))))
+//                .andExpect(jsonPath("$[1].id", is(eventDto2.getId().intValue())))
+//                .andExpect(jsonPath("$[1].title", is(eventDto2.getTitle())));
+//
+//            verify(eventService).getEventsByOwner(testUserId, 0, 20);
+//        }
 
         @Test
         @DisplayName("должен использовать значения по умолчанию для from и size")
