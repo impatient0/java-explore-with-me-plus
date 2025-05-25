@@ -14,10 +14,11 @@ import java.util.List;
 @Repository
 public interface CompilationRepository extends JpaRepository<Compilation, Long> {
 
-    @EntityGraph(attributePaths = {"events"})
+    @EntityGraph(attributePaths = {"events", "events.category", "events.initiator"})
     List<Compilation> findByPinned(Boolean pinned, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"events"})
+    @Override
+    @EntityGraph(attributePaths = {"events", "events.category", "events.initiator"})
     Page<Compilation> findAll(Pageable pageable);
 
     @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END " +

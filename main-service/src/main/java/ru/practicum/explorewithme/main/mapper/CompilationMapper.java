@@ -2,6 +2,7 @@ package ru.practicum.explorewithme.main.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import ru.practicum.explorewithme.main.dto.CompilationDto;
 import ru.practicum.explorewithme.main.dto.NewCompilationDto;
 import ru.practicum.explorewithme.main.dto.UpdateCompilationRequestDto;
@@ -15,10 +16,9 @@ public interface CompilationMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "events", ignore = true)
-    @Mapping(target = "pinned", defaultValue = "false")
     Compilation toCompilation(NewCompilationDto newCompilationDto);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "events", ignore = true)
-    Compilation toCompilation(UpdateCompilationRequestDto updateCompilationRequestDto);
+    void updateCompilationFromDto(UpdateCompilationRequestDto dto, @MappingTarget Compilation compilation);
 }
