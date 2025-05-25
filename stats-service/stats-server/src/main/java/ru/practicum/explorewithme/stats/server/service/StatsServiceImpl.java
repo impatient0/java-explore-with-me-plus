@@ -37,16 +37,17 @@ public class StatsServiceImpl implements StatsService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end, List<String> uris, boolean unique) {
+    public List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end, List<String> urisFromController, boolean unique) {
         log.debug("Service: Requesting stats with params: start={}, end={}, uris={}, unique={}",
-                start, end, uris, unique);
+            start, end, urisFromController, unique);
 
         if (start != null && end != null && start.isAfter(end)) {
             log.warn("Validation error in getStats: Start date {} is after end date {}", start, end);
             throw new IllegalArgumentException("Error: Start date cannot be after end date.");
         }
 
-        Collection<String> urisForRepo = (uris == null || uris.isEmpty()) ? null : uris;
+        // Пустой список URI явно конвертируется в null для обработки репозиторием
+        Collection<String> urisForRepo = (urisFromController == null || urisFromController.isEmpty()) ? null : urisFromController;
 
         List<ViewStatsDto> stats;
         if (unique) {
