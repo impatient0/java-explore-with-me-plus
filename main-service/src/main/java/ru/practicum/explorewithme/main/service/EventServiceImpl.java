@@ -106,9 +106,7 @@ public class EventServiceImpl implements EventService {
             }
         }
 
-        Sort sortOption = sort != null && sort.equalsIgnoreCase("VIEWS") ?
-                Sort.by(Sort.Direction.DESC, "views") :
-                Sort.by(Sort.Direction.ASC, "eventDate");
+        Sort sortOption = Sort.by(Sort.Direction.ASC, "eventDate");
 
         Pageable pageable = PageRequest.of(from / size, size, sortOption);
 
@@ -140,6 +138,10 @@ public class EventServiceImpl implements EventService {
                     return event.getParticipantLimit() == 0 || dto.getConfirmedRequests() < event.getParticipantLimit();
                 })
                 .collect(Collectors.toList());
+        }
+
+        if (sort != null && sort.equalsIgnoreCase("VIEWS")) {
+            eventDtos.sort(Comparator.comparing(EventShortDto::getViews).reversed());
         }
 
         log.info("Public search prepared {} DTOs after enrichment and filtering.", eventDtos.size());
