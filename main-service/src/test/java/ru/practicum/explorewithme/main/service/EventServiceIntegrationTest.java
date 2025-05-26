@@ -1,5 +1,6 @@
 package ru.practicum.explorewithme.main.service;
 
+import jakarta.persistence.EntityManager;
 import java.util.Collections;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -7,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -59,6 +61,9 @@ class EventServiceIntegrationTest {
         registry.add("spring.datasource.password", postgresContainer::getPassword);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create");
     }
+
+    @Autowired
+    private EntityManager entityManager;
 
     @Autowired
     private EventService eventService;
@@ -823,6 +828,8 @@ class EventServiceIntegrationTest {
             requestRepository.save(ParticipationRequest.builder().event(event4PastPub).requester(user1).status(RequestStatus.CONFIRMED).created(now).build());
             eventRepository.save(event4PastPub);
 
+            entityManager.flush();
+            entityManager.clear();
 
             PublicEventSearchParams params = PublicEventSearchParams.builder()
                 .onlyAvailable(true)
@@ -839,6 +846,9 @@ class EventServiceIntegrationTest {
 
             requestRepository.save(ParticipationRequest.builder().event(event2Pub).requester(user2).status(RequestStatus.CONFIRMED).created(now).build());
             requestRepository.save(ParticipationRequest.builder().event(event2Pub).requester(user3).status(RequestStatus.CONFIRMED).created(now).build());
+
+            entityManager.flush();
+            entityManager.clear();
 
             results = eventService.getEventsPublic(params, 0, 10);
             assertEquals(2, results.size(), "Event2Pub should now be unavailable");
