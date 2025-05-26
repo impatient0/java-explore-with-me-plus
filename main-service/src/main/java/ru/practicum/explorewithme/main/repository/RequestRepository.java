@@ -1,5 +1,6 @@
 package ru.practicum.explorewithme.main.repository;
 
+import java.util.Set;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -34,4 +35,17 @@ public interface RequestRepository extends JpaRepository<ParticipationRequest, L
     List<ParticipationRequest> findByEvent_IdAndStatus(Long eventId, RequestStatus status);
 
     List<ParticipationRequest> findByEvent_Id(Long eventId);
+
+    long countByEventIdAndStatus(Long eventId, RequestStatus status);
+
+    @Query("SELECT r.event.id as eventId, COUNT(r.id) as requestCount " +
+        "FROM ParticipationRequest r " +
+        "WHERE r.event.id IN :eventIds AND r.status = 'CONFIRMED' " +
+        "GROUP BY r.event.id")
+    List<ConfirmedRequestCountProjection> countConfirmedRequestsForEventIds(@Param("eventIds") Set<Long> eventIds);
+
+    interface ConfirmedRequestCountProjection {
+        Long getEventId();
+        Long getRequestCount();
+    }
 }
