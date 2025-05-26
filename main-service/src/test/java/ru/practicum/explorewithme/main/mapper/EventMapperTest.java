@@ -59,7 +59,7 @@ class EventMapperTest {
                 .requestModeration(true)
                 .state(EventState.PUBLISHED)
                 .title("Test Event Title")
-                .confirmedRequestsCount(42)
+                .confirmedRequestsCount(42L)
                 .build();
 
             EventFullDto dto = eventMapper.toEventFullDto(event);
@@ -202,7 +202,7 @@ class EventMapperTest {
                 .initiator(initiatorModel)
                 .paid(true)
                 .title("Short Event Title")
-                .confirmedRequestsCount(5)
+                .confirmedRequestsCount(5L)
                 .description("Full description not needed for short dto")
                 .state(EventState.PUBLISHED)
                 .build();
@@ -248,7 +248,7 @@ class EventMapperTest {
                 .initiator(null)
                 .paid(false)
                 .title("Event with Nulls")
-                .confirmedRequestsCount(33)
+                .confirmedRequestsCount(33L)
                 .build();
 
             EventShortDto dto = eventMapper.toEventShortDto(event);
@@ -271,9 +271,9 @@ class EventMapperTest {
             Category categoryModel = Category.builder().id(10L).name("Test Category").build();
 
             Event event1 = Event.builder().id(1L).title("Short Event 1").category(categoryModel).initiator(initiatorModel)
-                .eventDate(LocalDateTime.now()).annotation("A1").paid(true).confirmedRequestsCount(2).build();
+                .eventDate(LocalDateTime.now()).annotation("A1").paid(true).confirmedRequestsCount(2L).build();
             Event event2 = Event.builder().id(2L).title("Short Event 2").category(categoryModel).initiator(initiatorModel)
-                .eventDate(LocalDateTime.now()).annotation("A2").paid(false).confirmedRequestsCount(5).build();
+                .eventDate(LocalDateTime.now()).annotation("A2").paid(false).confirmedRequestsCount(5L).build();
             List<Event> events = Arrays.asList(event1, event2);
 
             List<EventShortDto> dtoList = eventMapper.toEventShortDtoList(events);

@@ -11,7 +11,6 @@ import java.util.List;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -134,7 +133,7 @@ public class EventServiceImpl implements EventService {
         if (onlyAvailable) {
             eventDtos = eventDtos.stream()
                 .filter(dto -> {
-                    Event event = eventMapById.get(dto.getId()); // Быстрый доступ
+                    Event event = eventMapById.get(dto.getId());
                     if (event == null) return false;
                     return event.getParticipantLimit() == 0 || dto.getConfirmedRequests() < event.getParticipantLimit();
                 })
