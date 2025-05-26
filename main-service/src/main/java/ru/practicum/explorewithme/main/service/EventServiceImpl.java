@@ -121,6 +121,9 @@ public class EventServiceImpl implements EventService {
         Map<Long, Long> viewsMap = getViewsForEvents(foundEvents);
         Map<Long, Long> confirmedRequestsMap = getConfirmedRequestsForEvents(foundEvents);
 
+        Map<Long, Event> eventMapById = foundEvents.stream()
+            .collect(Collectors.toMap(Event::getId, e -> e));
+
         List<EventShortDto> eventDtos = foundEvents.stream()
             .map(event -> {
                 EventShortDto dto = eventMapper.toEventShortDto(event);
@@ -133,7 +136,7 @@ public class EventServiceImpl implements EventService {
         if (onlyAvailable) {
             eventDtos = eventDtos.stream()
                 .filter(dto -> {
-                    Event event = foundEvents.stream().filter(e -> e.getId().equals(dto.getId())).findFirst().orElse(null);
+                    Event event = eventMapById.get(dto.getId()); // Быстрый доступ
                     if (event == null) return false;
                     return event.getParticipantLimit() == 0 || dto.getConfirmedRequests() < event.getParticipantLimit();
                 })
