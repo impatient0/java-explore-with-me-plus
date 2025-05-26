@@ -59,7 +59,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     public void deleteCategory(Long categoryId) {
 
-        if (!categoryRepository.findById(categoryId).isPresent()) {
+        if (categoryRepository.findById(categoryId).isEmpty()) {
             throw new EntityNotFoundException("Category", "Id", categoryId);
         }
         if (eventRepository.existsByCategoryId(categoryId)) {

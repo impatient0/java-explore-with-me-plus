@@ -52,10 +52,9 @@ public class RequestServiceImpl implements RequestService {
     public List<ParticipationRequestDto> getRequests(Long userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User", "Id", userId));
-        List<ParticipationRequestDto> result = requestRepository.findByRequester_Id(userId).stream()
+        return requestRepository.findByRequester_Id(userId).stream()
                 .sorted(Comparator.comparing(ParticipationRequest::getCreated).reversed())
                 .map(requestMapper::toRequestDto).toList();
-        return result;
     }
 
     @Override
@@ -63,10 +62,9 @@ public class RequestServiceImpl implements RequestService {
     public List<ParticipationRequestDto> getEventRequests(Long userId, Long eventId) {
         if (!eventRepository.existsByIdAndInitiator_Id(eventId, userId))
             throw new EntityNotFoundException("Event with Id = " + eventId + " when initiator", "Id", userId);
-        List<ParticipationRequestDto> result = requestRepository.findByEvent_Id(eventId).stream()
+        return requestRepository.findByEvent_Id(eventId).stream()
                 .sorted(Comparator.comparing(ParticipationRequest::getCreated).reversed())
                 .map(requestMapper::toRequestDto).toList();
-        return result;
     }
 
     @Override

@@ -42,7 +42,7 @@ public class UserServiceImpl implements UserService {
 
         Optional<User> existingUser = userRepository.findById(userId);
 
-        if (!existingUser.isPresent()) {
+        if (existingUser.isEmpty()) {
             throw new EntityNotFoundException("User", "Id", userId);
         }
 
