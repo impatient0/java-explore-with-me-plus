@@ -1,6 +1,5 @@
 package ru.practicum.explorewithme.main.service;
 
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,8 +27,6 @@ public class RequestServiceImpl implements RequestService {
     private final RequestMapper requestMapper;
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
-
-    private final EntityManager entityManager;
 
     @Override
     @Transactional
