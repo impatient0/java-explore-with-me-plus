@@ -3,6 +3,7 @@ package ru.practicum.explorewithme.main.dto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 import ru.practicum.explorewithme.main.model.RequestStatus;
 
 import java.time.LocalDateTime;
@@ -13,19 +14,20 @@ import static ru.practicum.explorewithme.common.constants.DateTimeConstants.DATE
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class ParticipationRequestDto {
 
-    private Long id;
+    Long id;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_TIME_FORMAT_PATTERN)
-    private LocalDateTime created;
+    LocalDateTime created;
 
     @JsonProperty("requester")
-    private Long requesterId;
+    Long requesterId;
 
     @JsonProperty("event")
-    private Long eventId;
+    Long eventId;
 
-    private RequestStatus status;
+    RequestStatus status;
 
 }

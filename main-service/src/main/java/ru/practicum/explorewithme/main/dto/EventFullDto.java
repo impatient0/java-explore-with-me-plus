@@ -19,23 +19,23 @@ import ru.practicum.explorewithme.main.model.Location;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class EventFullDto {
-    private Long id;
-    private String annotation;
-    private CategoryDto category;
-    private Long confirmedRequests;
+    Long id;
+    String annotation;
+    CategoryDto category;
+    Long confirmedRequests;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_TIME_FORMAT_PATTERN)
-    private LocalDateTime createdOn;
-    private String description;
+    LocalDateTime createdOn;
+    String description;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_TIME_FORMAT_PATTERN)
-    private LocalDateTime eventDate;
-    private UserShortDto initiator;
-    private Location location;
-    private boolean paid;
-    private int participantLimit;
+    LocalDateTime eventDate;
+    UserShortDto initiator;
+    Location location;
+    boolean paid;
+    int participantLimit;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_TIME_FORMAT_PATTERN)
-    private LocalDateTime publishedOn;
-    private boolean requestModeration;
-    private EventState state;
-    private String title;
-    private Long views;
+    LocalDateTime publishedOn;
+    boolean requestModeration;
+    EventState state;
+    String title;
+    Long views;
 }

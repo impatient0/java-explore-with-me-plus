@@ -6,10 +6,8 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
 import ru.practicum.explorewithme.main.model.Location;
 
 import java.time.LocalDateTime;
@@ -18,33 +16,34 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class UpdateEventUserRequestDto {
 
     @Size(min = 20, max = 2000, message = "Annotation length must be between 20 and 2000 characters")
-    private String annotation;
+    String annotation;
 
-    private Long category;
+    Long category;
 
     @Size(min = 20, max = 7000, message = "Description length must be between 20 and 7000 characters")
-    private String description;
+    String description;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_TIME_FORMAT_PATTERN)
     @Future(message = "Event date must be in the future")
-    private LocalDateTime eventDate;
+    LocalDateTime eventDate;
 
-    private Location location;
+    Location location;
 
-    private Boolean paid;
+    Boolean paid;
 
     @PositiveOrZero(message = "Participant limit must be positive or zero")
-    private Integer participantLimit;
+    Integer participantLimit;
 
-    private Boolean requestModeration;
+    Boolean requestModeration;
 
-    private StateActionUser stateAction;
+    StateActionUser stateAction;
 
     @Size(min = 3, max = 120, message = "Title length must be between 3 and 120 characters")
-    private String title;
+    String title;
 
     public enum StateActionUser {
         SEND_TO_REVIEW,

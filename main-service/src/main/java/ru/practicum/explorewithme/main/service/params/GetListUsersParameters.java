@@ -6,10 +6,9 @@ import java.util.List;
 
 @Data
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
 public class GetListUsersParameters {
-    List<Long> ids;
-    int from;
-    int size;
+    private final List<Long> ids;
+    private final int from;
+    private final int size;
 }
