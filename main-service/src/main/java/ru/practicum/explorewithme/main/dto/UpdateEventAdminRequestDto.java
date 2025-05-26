@@ -3,6 +3,7 @@ package ru.practicum.explorewithme.main.dto;
 import static ru.practicum.explorewithme.common.constants.DateTimeConstants.DATE_TIME_FORMAT_PATTERN;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -28,6 +29,7 @@ public class UpdateEventAdminRequestDto {
     private String description;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_TIME_FORMAT_PATTERN)
+    @Future(message = "Event date must be in the future")
     private LocalDateTime eventDate;
 
     private Location location;
