@@ -14,9 +14,7 @@ public interface EventMapper {
 
     @Mappings({
         @Mapping(source = "category", target = "category"),
-        @Mapping(source = "initiator", target = "initiator"),
-        @Mapping(target = "confirmedRequests", expression = "java(0L)"), // Заглушка
-        @Mapping(target = "views", expression = "java(0L)") // Заглушка
+        @Mapping(source = "initiator", target = "initiator")
     })
     EventFullDto toEventFullDto(Event event);
 
@@ -32,9 +30,7 @@ public interface EventMapper {
 
     @Mappings({
         @Mapping(source = "category", target = "category"),
-        @Mapping(source = "initiator", target = "initiator"),
-        @Mapping(target = "confirmedRequests", expression = "java(0L)"), // Заглушка
-        @Mapping(target = "views", expression = "java(0L)") // Заглушка
+        @Mapping(source = "initiator", target = "initiator")
     })
     EventShortDto toEventShortDto(Event event);
 
