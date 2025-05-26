@@ -30,7 +30,9 @@ public interface EventMapper {
 
     @Mappings({
         @Mapping(source = "category", target = "category"),
-        @Mapping(source = "initiator", target = "initiator")
+        @Mapping(source = "initiator", target = "initiator"),
+        @Mapping(target = "confirmedRequests", ignore = true),
+        @Mapping(target = "views", ignore = true)
     })
     EventShortDto toEventShortDto(Event event);
 

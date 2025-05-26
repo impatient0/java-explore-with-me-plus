@@ -89,8 +89,9 @@ class EventMapperTest {
             assertEquals(locationModel.getLat(), dto.getLocation().getLat());
             assertEquals(locationModel.getLon(), dto.getLocation().getLon());
 
-            assertEquals(0L, dto.getConfirmedRequests());
-            assertEquals(0L, dto.getViews());
+            // Не мапит просмотры и потдверждённые запросы.
+            assertNull(dto.getConfirmedRequests());
+            assertNull(dto.getViews());
         }
 
         @Test
