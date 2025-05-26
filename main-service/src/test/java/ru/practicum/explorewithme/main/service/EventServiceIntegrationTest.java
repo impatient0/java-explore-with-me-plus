@@ -663,7 +663,7 @@ class EventServiceIntegrationTest {
             when(statsClient.getStats(any(LocalDateTime.class), any(LocalDateTime.class), eq(List.of(eventUri)), eq(true)))
                 .thenReturn(List.of(viewStat));
 
-            EventFullDto resultDto = eventService.getEventByIdPublic(publishedEvent.getId(), "127.0.0.1");
+            EventFullDto resultDto = eventService.getEventByIdPublic(publishedEvent.getId());
 
             assertNotNull(resultDto);
             assertEquals(publishedEvent.getId(), resultDto.getId());
@@ -683,7 +683,7 @@ class EventServiceIntegrationTest {
             Long pendingEventId = pendingEvent.getId();
 
             assertThrows(EntityNotFoundException.class, () -> {
-                eventService.getEventByIdPublic(pendingEventId, "127.0.0.1");
+                eventService.getEventByIdPublic(pendingEventId);
             });
         }
 
@@ -694,13 +694,13 @@ class EventServiceIntegrationTest {
             when(statsClient.getStats(any(LocalDateTime.class), any(LocalDateTime.class), eq(List.of(eventUri)), eq(true)))
                 .thenReturn(Collections.emptyList());
 
-            EventFullDto resultDtoEmptyStats = eventService.getEventByIdPublic(publishedEvent.getId(), "127.0.0.1");
+            EventFullDto resultDtoEmptyStats = eventService.getEventByIdPublic(publishedEvent.getId());
             assertEquals(0L, resultDtoEmptyStats.getViews(), "Views should be 0 if stats service returns empty");
 
             when(statsClient.getStats(any(LocalDateTime.class), any(LocalDateTime.class), eq(List.of(eventUri)), eq(true)))
                 .thenThrow(new RuntimeException("Stats service error"));
 
-            EventFullDto resultDtoErrorStats = eventService.getEventByIdPublic(publishedEvent.getId(), "127.0.0.1");
+            EventFullDto resultDtoErrorStats = eventService.getEventByIdPublic(publishedEvent.getId());
             assertEquals(0L, resultDtoErrorStats.getViews(), "Views should be 0 if stats service throws error");
             assertEquals(2L, resultDtoErrorStats.getConfirmedRequests());
         }
@@ -744,7 +744,7 @@ class EventServiceIntegrationTest {
             requestRepository.save(ParticipationRequest.builder().event(event1Pub).requester(user2).status(RequestStatus.CONFIRMED).created(now).build());
             requestRepository.save(ParticipationRequest.builder().event(event1Pub).requester(user3).status(RequestStatus.CONFIRMED).created(now).build());
             for (int i = 0; i < 3; i++) {
-                User tempUser = userRepository.save(User.builder().name("Temp User " + i).email("temp"+i+"@mail.com").build());
+                User tempUser = userRepository.save(User.builder().name("Temp User " + i).email("temp" + i + "@mail.com").build());
                 requestRepository.save(ParticipationRequest.builder().event(event1Pub).requester(tempUser).status(RequestStatus.CONFIRMED).created(now).build());
             }
 
@@ -758,7 +758,7 @@ class EventServiceIntegrationTest {
             when(statsClient.getStats(any(LocalDateTime.class), any(LocalDateTime.class), anyList(), anyBoolean()))
                 .thenReturn(Collections.emptyList());
 
-            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10);
 
             assertEquals(2, results.size(), "Should find 2 future published events (event1Pub, event2Pub)");
             assertTrue(results.stream().anyMatch(e -> e.getId().equals(event1Pub.getId())));
@@ -771,7 +771,7 @@ class EventServiceIntegrationTest {
             PublicEventSearchParams params = PublicEventSearchParams.builder().text("alpha SpOrTs").build();
             when(statsClient.getStats(any(), any(), anyList(), eq(true))).thenReturn(Collections.emptyList());
 
-            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10);
             assertEquals(1, results.size());
             assertEquals(event1Pub.getId(), results.getFirst().getId());
         }
@@ -782,7 +782,7 @@ class EventServiceIntegrationTest {
             PublicEventSearchParams params = PublicEventSearchParams.builder().categories(List.of(category2.getId())).build();
             when(statsClient.getStats(any(), any(), anyList(), eq(true))).thenReturn(Collections.emptyList());
 
-            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10);
             // event4PastPub не попадет в выборку, так как по умолчанию отбираются будущие события.
             assertEquals(1, results.size(), "Expected 1 event in category B that is in the future and published");
             assertEquals(event2Pub.getId(), results.getFirst().getId());
@@ -794,7 +794,7 @@ class EventServiceIntegrationTest {
             PublicEventSearchParams params = PublicEventSearchParams.builder().paid(true).build();
             when(statsClient.getStats(any(), any(), anyList(), eq(true))).thenReturn(Collections.emptyList());
 
-            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10);
             assertEquals(1, results.size());
             assertEquals(event2Pub.getId(), results.getFirst().getId());
             assertTrue(results.getFirst().getPaid());
@@ -809,7 +809,7 @@ class EventServiceIntegrationTest {
                 .build();
             when(statsClient.getStats(any(), any(), anyList(), eq(true))).thenReturn(Collections.emptyList());
 
-            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10);
 
             assertEquals(3, results.size(), "Should find event1Pub, event2Pub and event4PastPub");
             assertTrue(results.stream().anyMatch(e -> e.getId().equals(event1Pub.getId())));
@@ -830,7 +830,7 @@ class EventServiceIntegrationTest {
                 .build();
             when(statsClient.getStats(any(), any(), anyList(), eq(true))).thenReturn(Collections.emptyList());
 
-            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10);
 
             assertEquals(3, results.size());
             assertTrue(results.stream().anyMatch(e -> e.getId().equals(event1Pub.getId()) && e.getConfirmedRequests() == 5L));
@@ -840,7 +840,7 @@ class EventServiceIntegrationTest {
             requestRepository.save(ParticipationRequest.builder().event(event2Pub).requester(user2).status(RequestStatus.CONFIRMED).created(now).build());
             requestRepository.save(ParticipationRequest.builder().event(event2Pub).requester(user3).status(RequestStatus.CONFIRMED).created(now).build());
 
-            results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+            results = eventService.getEventsPublic(params, 0, 10);
             assertEquals(2, results.size(), "Event2Pub should now be unavailable");
             assertFalse(results.stream().anyMatch(e -> e.getId().equals(event2Pub.getId())));
         }
@@ -864,7 +864,7 @@ class EventServiceIntegrationTest {
             when(statsClient.getStats(any(LocalDateTime.class), any(LocalDateTime.class), anyList(), eq(true)))
                 .thenReturn(List.of(stat1, stat2, stat4));
 
-            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10);
 
             assertEquals(3, results.size());
             assertEquals(event2Pub.getId(), results.get(0).getId(), "Event2 (200 views) should be first");
@@ -883,8 +883,8 @@ class EventServiceIntegrationTest {
 
             when(statsClient.getStats(any(), any(), anyList(), eq(true))).thenReturn(Collections.emptyList());
 
-            List<EventShortDto> resultsDefault = eventService.getEventsPublic(paramsDefaultSort, 0, 10, "127.0.0.1");
-            List<EventShortDto> resultsExplicit = eventService.getEventsPublic(paramsExplicitSort, 0, 10, "127.0.0.1");
+            List<EventShortDto> resultsDefault = eventService.getEventsPublic(paramsDefaultSort, 0, 10);
+            List<EventShortDto> resultsExplicit = eventService.getEventsPublic(paramsExplicitSort, 0, 10);
 
             assertEquals(2, resultsDefault.size());
             assertEquals(event2Pub.getId(), resultsDefault.get(0).getId());

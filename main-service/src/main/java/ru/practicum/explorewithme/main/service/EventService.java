@@ -26,7 +26,7 @@ public interface EventService {
 
     EventFullDto moderateEventByAdmin(Long eventId, UpdateEventAdminRequestDto requestDto);
 
-    List<EventShortDto> getEventsPublic(PublicEventSearchParams params, int from, int size, String ipAddress);
+    List<EventShortDto> getEventsPublic(PublicEventSearchParams params, int from, int size);
 
-    EventFullDto getEventByIdPublic(Long eventId, String ipAddress);
+    EventFullDto getEventByIdPublic(Long eventId);
 }

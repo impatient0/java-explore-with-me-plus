@@ -59,7 +59,7 @@ public class PublicEventController {
                 .sort(sort)
                 .build();
 
-        List<EventShortDto> events = eventService.getEventsPublic(params, from, size, ipAddress);
+        List<EventShortDto> events = eventService.getEventsPublic(params, from, size);
         log.info("Public: Found {} events", events.size());
         return events;
     }
@@ -71,7 +71,7 @@ public class PublicEventController {
             @PathVariable @Positive Long eventId,
             @RequestHeader(name = "X-Real-IP", required = false) String ipAddress) {
         log.info("Public: Received request to get event with id={}", eventId);
-        EventFullDto event = eventService.getEventByIdPublic(eventId, ipAddress);
+        EventFullDto event = eventService.getEventByIdPublic(eventId);
         log.info("Public: Found event: {}", event);
         return event;
     }

@@ -61,8 +61,8 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EventShortDto> getEventsPublic(PublicEventSearchParams params, int from, int size, String ipAddress) {
-        log.info("Public search for events with params: {}, from={}, size={}, ip={}", params, from, size, ipAddress);
+    public List<EventShortDto> getEventsPublic(PublicEventSearchParams params, int from, int size) {
+        log.info("Public search for events with params: {}, from={}, size={}", params, from, size);
 
         String text = params.getText();
         List<Long> categories = params.getCategories();
@@ -205,8 +205,8 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional(readOnly = true)
-    public EventFullDto getEventByIdPublic(Long eventId, String ipAddress) {
-        log.info("Public: Fetching event id={} from IP={}", eventId, ipAddress);
+    public EventFullDto getEventByIdPublic(Long eventId) {
+        log.info("Public: Fetching event id={}", eventId);
 
         Event event = eventRepository.findByIdAndState(eventId, EventState.PUBLISHED)
             .orElseThrow(() -> new EntityNotFoundException(

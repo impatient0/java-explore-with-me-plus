@@ -92,7 +92,7 @@ class PublicEventControllerTest {
             EventShortDto event1 = EventShortDto.builder().id(1L).title("Event Alpha").build();
             List<EventShortDto> mockEvents = List.of(event1);
 
-            when(eventService.getEventsPublic(any(PublicEventSearchParams.class), anyInt(), anyInt(), eq(testIpAddress)))
+            when(eventService.getEventsPublic(any(PublicEventSearchParams.class), anyInt(), anyInt()))
                 .thenReturn(mockEvents);
 
             mockMvc.perform(get("/events")
@@ -114,7 +114,7 @@ class PublicEventControllerTest {
                 .onlyAvailable(false)
                 .sort("EVENT_DATE")
                 .build();
-            verify(eventService).getEventsPublic(eq(expectedSearchParams), eq(0), eq(10), eq(testIpAddress));
+            verify(eventService).getEventsPublic(eq(expectedSearchParams), eq(0), eq(10));
 
             verify(statsClient, times(1)).saveHit(hitDtoCaptor.capture());
             EndpointHitDto capturedHit = hitDtoCaptor.getValue();
@@ -127,7 +127,7 @@ class PublicEventControllerTest {
         @Test
         @DisplayName("должен отправлять хит даже если сервис событий вернул пустой список")
         void whenServiceReturnsEmpty_shouldStillLogHit() throws Exception {
-            when(eventService.getEventsPublic(any(PublicEventSearchParams.class), anyInt(), anyInt(), any()))
+            when(eventService.getEventsPublic(any(PublicEventSearchParams.class), anyInt(), anyInt()))
                 .thenReturn(Collections.emptyList());
 
             mockMvc.perform(get("/events")
@@ -142,7 +142,7 @@ class PublicEventControllerTest {
         @Test
         @DisplayName("должен использовать IP из заголовка X-Real-IP, если он есть")
         void withXRealIpHeader_shouldUseHeaderIpForHit() throws Exception {
-            when(eventService.getEventsPublic(any(), anyInt(), anyInt(), eq("10.0.0.1"))).thenReturn(Collections.emptyList());
+            when(eventService.getEventsPublic(any(), anyInt(), anyInt())).thenReturn(Collections.emptyList());
 
             mockMvc.perform(get("/events")
                     .header("X-Real-IP", "10.0.0.1")
@@ -157,7 +157,7 @@ class PublicEventControllerTest {
         @DisplayName("должен использовать IP из request.getRemoteAddr(), если заголовок X-Real-IP отсутствует")
         void withoutXRealIpHeader_shouldUseRemoteAddrForHit() throws Exception {
             String defaultMockIp = "127.0.0.1";
-            when(eventService.getEventsPublic(any(), anyInt(), anyInt(), eq(defaultMockIp)))
+            when(eventService.getEventsPublic(any(), anyInt(), anyInt()))
                 .thenReturn(Collections.emptyList());
 
             mockMvc.perform(get("/events")
@@ -192,7 +192,7 @@ class PublicEventControllerTest {
                 .sort(sort)
                 .build();
 
-            when(eventService.getEventsPublic(eq(expectedSearchParams), eq(from), eq(size), eq(ip)))
+            when(eventService.getEventsPublic(eq(expectedSearchParams), eq(from), eq(size)))
                 .thenReturn(Collections.emptyList());
 
             mockMvc.perform(get("/events")
@@ -209,7 +209,7 @@ class PublicEventControllerTest {
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-            verify(eventService).getEventsPublic(eq(expectedSearchParams), eq(from), eq(size), eq(ip));
+            verify(eventService).getEventsPublic(eq(expectedSearchParams), eq(from), eq(size));
             verify(statsClient).saveHit(any(EndpointHitDto.class));
         }
 
@@ -231,7 +231,7 @@ class PublicEventControllerTest {
                 .sort("EVENT_DATE")
                 .build();
 
-            when(eventService.getEventsPublic(eq(expectedSearchParams), eq(from), eq(size), any()))
+            when(eventService.getEventsPublic(eq(expectedSearchParams), eq(from), eq(size)))
                 .thenReturn(Collections.emptyList());
 
             mockMvc.perform(get("/events")
@@ -240,7 +240,7 @@ class PublicEventControllerTest {
                     .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-            verify(eventService).getEventsPublic(eq(expectedSearchParams), eq(from), eq(size), any());
+            verify(eventService).getEventsPublic(eq(expectedSearchParams), eq(from), eq(size));
             verify(statsClient).saveHit(any(EndpointHitDto.class));
         }
 
@@ -283,7 +283,7 @@ class PublicEventControllerTest {
                 .eventDate(LocalDateTime.now().plusDays(1).withNano(0))
                 .build();
 
-            when(eventService.getEventByIdPublic(eq(eventId), eq(testIpAddress))).thenReturn(mockEvent);
+            when(eventService.getEventByIdPublic(eq(eventId))).thenReturn(mockEvent);
 
             mockMvc.perform(get("/events/{eventId}", eventId)
                     .header("X-Real-IP", testIpAddress)
@@ -292,7 +292,7 @@ class PublicEventControllerTest {
                 .andExpect(jsonPath("$.id", is(eventId.intValue())))
                 .andExpect(jsonPath("$.title", is("Specific Event")));
 
-            verify(eventService).getEventByIdPublic(eq(eventId), eq(testIpAddress));
+            verify(eventService).getEventByIdPublic(eq(eventId));
 
             verify(statsClient, times(1)).saveHit(hitDtoCaptor.capture());
             EndpointHitDto capturedHit = hitDtoCaptor.getValue();
@@ -306,7 +306,7 @@ class PublicEventControllerTest {
         @DisplayName("должен отправлять хит даже если сервис событий выбросил NotFoundException")
         void whenServiceThrowsNotFound_shouldStillLogHitAndReturn404() throws Exception {
             Long eventId = 999L;
-            when(eventService.getEventByIdPublic(eq(eventId), any()))
+            when(eventService.getEventByIdPublic(eq(eventId)))
                 .thenThrow(new ru.practicum.explorewithme.main.error.EntityNotFoundException("Event not found"));
 
             mockMvc.perform(get("/events/{eventId}", eventId)
@@ -353,7 +353,7 @@ class PublicEventControllerTest {
                 .confirmedRequests(50L)
                 .build();
 
-            when(eventService.getEventByIdPublic(eq(eventId), eq(testIpAddress))).thenReturn(mockEvent);
+            when(eventService.getEventByIdPublic(eq(eventId))).thenReturn(mockEvent);
 
             mockMvc.perform(get("/events/{eventId}", eventId)
                     .header("X-Real-IP", testIpAddress)
