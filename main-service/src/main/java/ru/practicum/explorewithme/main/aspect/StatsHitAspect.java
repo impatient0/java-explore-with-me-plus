@@ -9,6 +9,7 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import ru.practicum.explorewithme.stats.client.StatsClient;
@@ -42,7 +43,17 @@ public class StatsHitAspect {
         HttpServletRequest request = attributes.getRequest();
 
         String uri = request.getRequestURI();
-        String ip = request.getRemoteAddr();
+
+        String ip;
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (StringUtils.hasText(xRealIp)) { // StringUtils.hasText проверяет на null, "", "   "
+            ip = xRealIp;
+            log.debug("StatsHitAspect: Using IP from X-Real-IP header: {}", ip);
+        } else {
+            ip = request.getRemoteAddr();
+            log.debug("StatsHitAspect: X-Real-IP header not found or empty, using remoteAddr: {}", ip);
+        }
+
         LocalDateTime timestamp = LocalDateTime.now();
 
         log.debug("StatsHitAspect: Logging hit for app='{}', uri='{}', ip='{}'", appName, uri, ip);
