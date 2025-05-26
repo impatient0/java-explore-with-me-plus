@@ -35,6 +35,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import ru.practicum.explorewithme.main.dto.EventFullDto;
+import ru.practicum.explorewithme.main.dto.EventShortDto;
 import ru.practicum.explorewithme.main.dto.NewEventDto;
 import ru.practicum.explorewithme.main.dto.UpdateEventAdminRequestDto;
 import ru.practicum.explorewithme.main.dto.UpdateEventUserRequestDto;
@@ -458,6 +459,163 @@ class EventServiceImplTest {
     }
 
     @Nested
+    @DisplayName("Метод getEventsByOwner")
+    class GetEventsByOwnerTests {
+        private Long ownerId;
+        private Long nonExistentOwnerId;
+        private Pageable defaultPageable;
+        private Event event1Owned, event2Owned;
+
+        @BeforeEach
+        void setUpOwnerEvents() {
+            ownerId = testUser.getId();
+            nonExistentOwnerId = 999L;
+            defaultPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "eventDate"));
+
+            event1Owned = Event.builder().id(101L).title("Owned Event 1").initiator(testUser).category(testCategory)
+                .eventDate(now.plusDays(1)).state(EventState.PENDING).createdOn(now).build();
+            event2Owned = Event.builder().id(102L).title("Owned Event 2").initiator(testUser).category(testCategory)
+                .eventDate(now.plusDays(2)).state(EventState.PUBLISHED).createdOn(now).build();
+        }
+
+        @Test
+        @DisplayName("Должен возвращать список EventShortDto событий пользователя с пагинацией")
+        void getEventsByOwner_whenUserExistsAndHasEvents_shouldReturnEventShortDtoList() {
+            List<Event> eventsFromRepo = List.of(event2Owned, event1Owned);
+            Page<Event> eventPage = new PageImpl<>(eventsFromRepo, defaultPageable, eventsFromRepo.size());
+
+            List<EventShortDto> expectedDtos = List.of(
+                EventShortDto.builder().id(102L).title("Owned Event 2").build(),
+                EventShortDto.builder().id(101L).title("Owned Event 1").build()
+            );
+
+            when(userRepository.existsById(ownerId)).thenReturn(true);
+            when(eventRepository.findByInitiatorId(ownerId, defaultPageable)).thenReturn(eventPage);
+            when(eventMapper.toEventShortDtoList(eventsFromRepo)).thenReturn(expectedDtos);
+
+            List<EventShortDto> result = eventService.getEventsByOwner(ownerId, 0, 10);
+
+            assertNotNull(result);
+            assertEquals(2, result.size());
+            assertEquals(expectedDtos.get(0).getTitle(), result.get(0).getTitle());
+            assertEquals(expectedDtos.get(1).getTitle(), result.get(1).getTitle());
+
+            verify(userRepository).existsById(ownerId);
+            verify(eventRepository).findByInitiatorId(ownerId, defaultPageable);
+            verify(eventMapper).toEventShortDtoList(eventsFromRepo);
+        }
+
+        @Test
+        @DisplayName("Должен возвращать пустой список, если у пользователя нет событий")
+        void getEventsByOwner_whenUserHasNoEvents_shouldReturnEmptyList() {
+            when(userRepository.existsById(ownerId)).thenReturn(true);
+            when(eventRepository.findByInitiatorId(ownerId, defaultPageable))
+                .thenReturn(new PageImpl<>(Collections.emptyList(), defaultPageable, 0));
+
+            List<EventShortDto> result = eventService.getEventsByOwner(ownerId, 0, 10);
+
+            assertNotNull(result);
+            assertTrue(result.isEmpty());
+            verify(userRepository).existsById(ownerId);
+            verify(eventRepository).findByInitiatorId(ownerId, defaultPageable);
+        }
+
+        @Test
+        @DisplayName("Должен возвращать пустой список, если пользователь не найден")
+        void getEventsByOwner_whenUserNotFound_shouldThrowEntityNotFoundException() {
+            when(userRepository.existsById(nonExistentOwnerId)).thenReturn(false);
+
+            List<EventShortDto> result = eventService.getEventsByOwner(nonExistentOwnerId, 0, 10);
+            assertNotNull(result);
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("Метод getEventPrivate")
+    class GetEventPrivateTests {
+        private Long ownerId;
+        private Long eventIdOwned;
+        private Long eventIdNotOwned;
+        private Long nonExistentEventId;
+        private Event ownedEvent;
+        private EventFullDto ownedEventFullDto;
+
+        @BeforeEach
+        void setUpPrivateEvent() {
+            ownerId = testUser.getId();
+            eventIdOwned = savedEvent.getId();
+            eventIdNotOwned = 998L;
+            nonExistentEventId = 999L;
+
+            ownedEvent = Event.builder()
+                .id(eventIdOwned)
+                .title(savedEvent.getTitle())
+                .initiator(testUser)
+                .category(testCategory)
+                .eventDate(savedEvent.getEventDate())
+                .state(EventState.PENDING)
+                .build();
+
+            ownedEventFullDto = EventFullDto.builder()
+                .id(eventIdOwned)
+                .title(ownedEvent.getTitle())
+                .build();
+        }
+
+        @Test
+        @DisplayName("Должен возвращать EventFullDto, если событие найдено и принадлежит пользователю")
+        void getEventPrivate_whenEventFoundAndOwned_shouldReturnEventFullDto() {
+            when(userRepository.existsById(ownerId)).thenReturn(true);
+            when(eventRepository.findByIdAndInitiatorId(eventIdOwned, ownerId))
+                .thenReturn(Optional.of(ownedEvent));
+            when(eventMapper.toEventFullDto(ownedEvent)).thenReturn(ownedEventFullDto);
+
+            EventFullDto result = eventService.getEventPrivate(ownerId, eventIdOwned);
+
+            assertNotNull(result);
+            assertEquals(ownedEventFullDto.getId(), result.getId());
+            assertEquals(ownedEventFullDto.getTitle(), result.getTitle());
+
+            verify(userRepository).existsById(ownerId);
+            verify(eventRepository).findByIdAndInitiatorId(eventIdOwned, ownerId);
+            verify(eventMapper).toEventFullDto(ownedEvent);
+        }
+
+        @Test
+        @DisplayName("Должен выбросить EntityNotFoundException, если пользователь не найден")
+        void getEventPrivate_whenUserNotFound_shouldThrowEntityNotFoundException() {
+            Long nonExistentUserId = 888L;
+            when(userRepository.existsById(nonExistentUserId)).thenReturn(false);
+
+            EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
+                eventService.getEventPrivate(nonExistentUserId, eventIdOwned);
+            });
+            assertTrue(exception.getMessage().contains("User with id=" + nonExistentUserId + " not found"));
+            verify(userRepository).existsById(nonExistentUserId);
+            verifyNoInteractions(eventRepository, eventMapper);
+        }
+
+        @Test
+        @DisplayName("Должен выбросить EntityNotFoundException, если событие не найдено (или не принадлежит пользователю)")
+        void getEventPrivate_whenEventNotFoundOrNotOwned_shouldThrowEntityNotFoundException() {
+            when(userRepository.existsById(ownerId)).thenReturn(true);
+            when(eventRepository.findByIdAndInitiatorId(nonExistentEventId, ownerId))
+                .thenReturn(Optional.empty());
+
+            EntityNotFoundException exception = assertThrows(EntityNotFoundException.class, () -> {
+                eventService.getEventPrivate(ownerId, nonExistentEventId);
+            });
+            assertTrue(exception.getMessage().contains("Event with id=" + nonExistentEventId));
+            assertTrue(exception.getMessage().contains("initiatorId=" + ownerId));
+
+            verify(userRepository).existsById(ownerId);
+            verify(eventRepository).findByIdAndInitiatorId(nonExistentEventId, ownerId);
+            verifyNoInteractions(eventMapper);
+        }
+    }
+
+    @Nested
     @DisplayName("Метод updateEventByOwner")
     class UpdateEventByOwnerTests {
 
@@ -523,7 +681,6 @@ class EventServiceImplTest {
         @Test
         @DisplayName("Должен успешно обновлять событие, если все условия соблюдены")
         void updateEventByOwner_whenValidRequestAndState_shouldUpdateAndReturnDto() {
-            // Arrange
             when(eventRepository.findByIdAndInitiatorId(existingEventId, testUser.getId()))
                 .thenReturn(Optional.of(existingEvent));
             when(eventRepository.save(any(Event.class))).thenReturn(updatedEventFromRepo);
@@ -886,6 +1043,4 @@ class EventServiceImplTest {
             verify(eventRepository, never()).save(any());
         }
     }
-
-    // ... TODO: Добавить тесты для других методов EventService, когда они появятся ...
 }
