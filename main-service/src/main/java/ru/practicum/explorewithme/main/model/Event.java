@@ -6,6 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
+import org.hibernate.annotations.Formula;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -116,5 +117,11 @@ public class Event {
     @ManyToMany(mappedBy = "events")
     @Builder.Default
     private Set<Compilation> compilations = new HashSet<>();
+
+    /**
+     *  Количество подтверждённых заявок
+     */
+    @Formula("(SELECT COUNT(r.id) FROM requests r WHERE r.event_id = id AND r.status = 'CONFIRMED')")
+    private Long confirmedRequestsCount;
 
 }

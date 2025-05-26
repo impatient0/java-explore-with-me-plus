@@ -119,7 +119,6 @@ public class EventServiceImpl implements EventService {
         List<Event> foundEvents = eventPage.getContent();
 
         Map<Long, Long> viewsMap = getViewsForEvents(foundEvents);
-        Map<Long, Long> confirmedRequestsMap = getConfirmedRequestsForEvents(foundEvents);
 
         Map<Long, Event> eventMapById = foundEvents.stream()
             .collect(Collectors.toMap(Event::getId, e -> e));
@@ -128,7 +127,6 @@ public class EventServiceImpl implements EventService {
             .map(event -> {
                 EventShortDto dto = eventMapper.toEventShortDto(event);
                 dto.setViews(viewsMap.getOrDefault(event.getId(), 0L));
-                dto.setConfirmedRequests(confirmedRequestsMap.getOrDefault(event.getId(), 0L));
                 return dto;
             })
             .collect(Collectors.toList());
@@ -149,61 +147,6 @@ public class EventServiceImpl implements EventService {
 
         log.info("Public search prepared {} DTOs after enrichment and filtering.", eventDtos.size());
         return eventDtos;
-    }
-
-    private Map<Long, Long> getViewsForEvents(List<Event> events) {
-        if (events == null || events.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        List<String> uris = events.stream()
-            .map(event -> "/events/" + event.getId())
-            .distinct()
-            .collect(Collectors.toList());
-
-        LocalDateTime earliestCreation = events.stream()
-            .map(Event::getCreatedOn)
-            .min(LocalDateTime::compareTo)
-            .orElse(LocalDateTime.of(1970, 1, 1, 0, 0));
-
-        Map<Long, Long> viewsMap = new HashMap<>();
-        try {
-            List<ViewStatsDto> stats = statsClient.getStats(
-                earliestCreation,
-                LocalDateTime.now(),
-                uris,
-                true // Уникальные просмотры
-            );
-            if (stats != null) {
-                for (ViewStatsDto stat : stats) {
-                    try {
-                        Long eventId = Long.parseLong(stat.getUri().substring("/events/".length()));
-                        viewsMap.put(eventId, stat.getHits());
-                    } catch (NumberFormatException | IndexOutOfBoundsException e) {
-                        log.warn("Could not parse eventId from URI {} from stats service", stat.getUri());
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.error("Failed to retrieve views for multiple events. Error: {}", e.getMessage());
-        }
-        return viewsMap;
-    }
-
-    private Map<Long, Long> getConfirmedRequestsForEvents(List<Event> events) {
-        if (events == null || events.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        Set<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toSet());
-        if (eventIds.isEmpty()) return Collections.emptyMap(); // На всякий случай
-
-        List<RequestRepository.ConfirmedRequestCountProjection> counts =
-            requestRepository.countConfirmedRequestsForEventIds(eventIds);
-
-        return counts.stream()
-            .collect(Collectors.toMap(
-                RequestRepository.ConfirmedRequestCountProjection::getEventId,
-                RequestRepository.ConfirmedRequestCountProjection::getRequestCount
-            ));
     }
 
     @Override
@@ -301,10 +244,8 @@ public class EventServiceImpl implements EventService {
         List<EventFullDto> result = eventMapper.toEventFullDtoList(eventPage.getContent());
 
         Map<Long, Long> viewsData = getViewsForEvents(eventPage.getContent());
-        Map<Long, Long> confirmedRequestsData = getConfirmedRequestsForEvents(eventPage.getContent());
         result.forEach(dto -> {
             dto.setViews(viewsData.get(dto.getId()));
-            dto.setConfirmedRequests(confirmedRequestsData.get(dto.getId()));
         });
 
         log.debug("Admin search found {} events on page {}/{}", result.size(), pageable.getPageNumber(), eventPage.getTotalPages());
@@ -502,5 +443,43 @@ public class EventServiceImpl implements EventService {
         Event event = eventMapper.toEvent(newEventDto);
         event.setInitiator(user);
         return eventMapper.toEventFullDto(eventRepository.save(event));
+    }
+
+    private Map<Long, Long> getViewsForEvents(List<Event> events) {
+        if (events == null || events.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<String> uris = events.stream()
+            .map(event -> "/events/" + event.getId())
+            .distinct()
+            .collect(Collectors.toList());
+
+        LocalDateTime earliestCreation = events.stream()
+            .map(Event::getCreatedOn)
+            .min(LocalDateTime::compareTo)
+            .orElse(LocalDateTime.of(1970, 1, 1, 0, 0));
+
+        Map<Long, Long> viewsMap = new HashMap<>();
+        try {
+            List<ViewStatsDto> stats = statsClient.getStats(
+                earliestCreation,
+                LocalDateTime.now(),
+                uris,
+                true // Уникальные просмотры
+            );
+            if (stats != null) {
+                for (ViewStatsDto stat : stats) {
+                    try {
+                        Long eventId = Long.parseLong(stat.getUri().substring("/events/".length()));
+                        viewsMap.put(eventId, stat.getHits());
+                    } catch (NumberFormatException | IndexOutOfBoundsException e) {
+                        log.warn("Could not parse eventId from URI {} from stats service", stat.getUri());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to retrieve views for multiple events. Error: {}", e.getMessage());
+        }
+        return viewsMap;
     }
 }
