@@ -37,7 +37,7 @@ public class CompilationServiceImpl implements CompilationService {
     public List<CompilationDto> getCompilations(Boolean pinned, Pageable pageable) {
         log.debug("Fetching compilations with pinned={} and pageable={}", pinned, pageable);
         List<Compilation> compilations = (pinned != null)
-                ? compilationRepository.findByPinned(pinned, pageable)
+                ? compilationRepository.findByPinned(pinned, pageable).getContent()
                 : compilationRepository.findAll(pageable).getContent();
         List<CompilationDto> result = compilations.stream()
                 .map(compilationMapper::toDto)
@@ -53,7 +53,7 @@ public class CompilationServiceImpl implements CompilationService {
         log.debug("Fetching compilations with pinned={}, from={}, size={}", pinned, from, size);
         Pageable pageable = PageRequest.of(from / size, size);
         List<Compilation> compilations = (pinned != null)
-                ? compilationRepository.findByPinned(pinned, pageable)
+                ? compilationRepository.findByPinned(pinned, pageable).getContent()
                 : compilationRepository.findAll(pageable).getContent();
         List<CompilationDto> result = compilations.stream()
                 .map(compilationMapper::toDto)

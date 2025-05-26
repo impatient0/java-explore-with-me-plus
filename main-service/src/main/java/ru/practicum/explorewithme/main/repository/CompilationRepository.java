@@ -9,13 +9,11 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import ru.practicum.explorewithme.main.model.Compilation;
 
-import java.util.List;
-
 @Repository
 public interface CompilationRepository extends JpaRepository<Compilation, Long> {
 
     @EntityGraph(attributePaths = {"events", "events.category", "events.initiator"})
-    List<Compilation> findByPinned(Boolean pinned, Pageable pageable);
+    Page<Compilation> findByPinned(Boolean pinned, Pageable pageable);
 
     @Override
     @EntityGraph(attributePaths = {"events", "events.category", "events.initiator"})
