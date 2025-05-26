@@ -243,9 +243,7 @@ public class EventServiceImpl implements EventService {
         List<EventFullDto> result = eventMapper.toEventFullDtoList(eventPage.getContent());
 
         Map<Long, Long> viewsData = getViewsForEvents(eventPage.getContent());
-        result.forEach(dto -> {
-            dto.setViews(viewsData.get(dto.getId()));
-        });
+        result.forEach(dto -> dto.setViews(viewsData.get(dto.getId())));
 
         log.debug("Admin search found {} events on page {}/{}", result.size(), pageable.getPageNumber(), eventPage.getTotalPages());
         return result;

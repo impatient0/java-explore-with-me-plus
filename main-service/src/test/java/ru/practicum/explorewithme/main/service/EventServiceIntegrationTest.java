@@ -8,7 +8,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -687,9 +686,7 @@ class EventServiceIntegrationTest {
             pendingEvent = eventRepository.save(pendingEvent);
             Long pendingEventId = pendingEvent.getId();
 
-            assertThrows(EntityNotFoundException.class, () -> {
-                eventService.getEventByIdPublic(pendingEventId);
-            });
+            assertThrows(EntityNotFoundException.class, () -> eventService.getEventByIdPublic(pendingEventId));
         }
 
         @Test
