@@ -69,7 +69,7 @@ public class EventServiceImpl implements EventService {
         Boolean paid = params.getPaid();
         LocalDateTime rangeStart = params.getRangeStart();
         LocalDateTime rangeEnd = params.getRangeEnd();
-        boolean onlyAvailable = params.isOnlyAvailable(); // У вас был isOnlyAvailable()
+        boolean onlyAvailable = params.isOnlyAvailable();
         String sort = params.getSort();
 
         if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {

@@ -1,5 +1,6 @@
 package ru.practicum.explorewithme.main.service;
 
+import java.util.Collections;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -23,14 +25,23 @@ import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.model.*;
 import ru.practicum.explorewithme.main.repository.CategoryRepository;
 import ru.practicum.explorewithme.main.repository.EventRepository;
+import ru.practicum.explorewithme.main.repository.RequestRepository;
 import ru.practicum.explorewithme.main.repository.UserRepository;
 import ru.practicum.explorewithme.main.service.params.AdminEventSearchParams;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import ru.practicum.explorewithme.main.service.params.PublicEventSearchParams;
+import ru.practicum.explorewithme.stats.client.StatsClient;
+import ru.practicum.explorewithme.stats.dto.ViewStatsDto;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @Testcontainers
@@ -61,26 +72,35 @@ class EventServiceIntegrationTest {
     @Autowired
     private CategoryRepository categoryRepository;
 
-    private User user1, user2;
+    @Autowired
+    private RequestRepository requestRepository;
+
+    @MockitoBean
+    private StatsClient statsClient;
+
+    private User user1, user2, user3;
     private Category category1, category2;
-    private Location location1;
+    private Location location1, location2;
     private LocalDateTime now;
 
     @BeforeEach
     void setUp() {
-        eventRepository.deleteAll();
-        categoryRepository.deleteAll();
-        userRepository.deleteAll();
+        requestRepository.deleteAllInBatch();
+        eventRepository.deleteAllInBatch();
+        categoryRepository.deleteAllInBatch();
+        userRepository.deleteAllInBatch();
 
         now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 
         user1 = userRepository.save(User.builder().name("User One").email("user1@events.com").build());
         user2 = userRepository.save(User.builder().name("User Two").email("user2@events.com").build());
+        user3 = userRepository.save(User.builder().name("User Three").email("user3@events.com").build());
 
         category1 = categoryRepository.save(Category.builder().name("Category A").build());
         category2 = categoryRepository.save(Category.builder().name("Category B").build());
 
         location1 = Location.builder().lat(10f).lon(10f).build();
+        location2 = Location.builder().lat(20f).lon(20f).build();
     }
 
     @Nested
@@ -274,7 +294,7 @@ class EventServiceIntegrationTest {
         @Test
         @DisplayName("Должен возвращать пустой список, если у пользователя нет событий")
         void getEventsByOwner_whenUserHasNoEvents_thenReturnsEmptyList() {
-            User userWithNoEvents = userRepository.save(User.builder().name("User Three").email("user3@events.com").build());
+            User userWithNoEvents = user3; // У user3 нет событий.
             List<EventShortDto> result = eventService.getEventsByOwner(userWithNoEvents.getId(), 0, 10);
             assertTrue(result.isEmpty());
         }
@@ -610,6 +630,269 @@ class EventServiceIntegrationTest {
             eventRepository.saveAndFlush(pendingEvent);
 
             assertThrows(EntityNotFoundException.class, () -> eventService.moderateEventByAdmin(pendingEvent.getId(), updateDtoWithBadCategory));
+        }
+    }
+
+    @Nested
+    @DisplayName("Метод getEventByIdPublic")
+    class GetEventByIdPublicIntegrationTests {
+        private Event publishedEvent;
+
+        @BeforeEach
+        void setUpPublicEvent() {
+            publishedEvent = Event.builder().title("Public Event Alpha").annotation("A_pub").description("D_pub")
+                .category(category1).initiator(user1).location(location1)
+                .eventDate(now.plusDays(1)).state(EventState.PENDING).createdOn(now.minusDays(10))
+                .participantLimit(10)
+                .build();
+            publishedEvent = eventRepository.save(publishedEvent);
+            publishedEvent.setState(EventState.PUBLISHED);
+            publishedEvent.setPublishedOn(now.minusDays(1));
+            publishedEvent = eventRepository.save(publishedEvent);
+
+            ParticipationRequest req1 = ParticipationRequest.builder().event(publishedEvent).requester(user2).status(RequestStatus.CONFIRMED).created(now).build();
+            ParticipationRequest req2 = ParticipationRequest.builder().event(publishedEvent).requester(user3).status(RequestStatus.CONFIRMED).created(now).build();
+            requestRepository.saveAll(List.of(req1, req2));
+        }
+
+        @Test
+        @DisplayName("Должен возвращать EventFullDto с просмотрами и подтвержденными запросами")
+        void getEventByIdPublic_whenEventExistsAndPublished_thenReturnsDtoWithViewsAndRequests() {
+            String eventUri = "/events/" + publishedEvent.getId();
+            ViewStatsDto viewStat = new ViewStatsDto("ewm-main-service", eventUri, 5L);
+            when(statsClient.getStats(any(LocalDateTime.class), any(LocalDateTime.class), eq(List.of(eventUri)), eq(true)))
+                .thenReturn(List.of(viewStat));
+
+            EventFullDto resultDto = eventService.getEventByIdPublic(publishedEvent.getId(), "127.0.0.1");
+
+            assertNotNull(resultDto);
+            assertEquals(publishedEvent.getId(), resultDto.getId());
+            assertEquals(publishedEvent.getTitle(), resultDto.getTitle());
+            assertEquals(5L, resultDto.getViews());
+            assertEquals(2L, resultDto.getConfirmedRequests());
+            assertEquals(EventState.PUBLISHED, resultDto.getState());
+        }
+
+        @Test
+        @DisplayName("Должен выбросить EntityNotFoundException, если событие не опубликовано")
+        void getEventByIdPublic_whenEventNotPublished_thenThrowsEntityNotFoundException() {
+            Event pendingEvent = Event.builder().title("Pending Event").annotation("A").description("D")
+                .category(category1).initiator(user1).location(location1)
+                .eventDate(now.plusDays(1)).state(EventState.PENDING).createdOn(now).build();
+            pendingEvent = eventRepository.save(pendingEvent);
+            Long pendingEventId = pendingEvent.getId();
+
+            assertThrows(EntityNotFoundException.class, () -> {
+                eventService.getEventByIdPublic(pendingEventId, "127.0.0.1");
+            });
+        }
+
+        @Test
+        @DisplayName("Просмотры должны быть 0, если сервис статистики вернул пустой список или ошибку")
+        void getEventByIdPublic_whenStatsServiceFailsOrReturnsEmpty_thenViewsAreZero() {
+            String eventUri = "/events/" + publishedEvent.getId();
+            when(statsClient.getStats(any(LocalDateTime.class), any(LocalDateTime.class), eq(List.of(eventUri)), eq(true)))
+                .thenReturn(Collections.emptyList());
+
+            EventFullDto resultDtoEmptyStats = eventService.getEventByIdPublic(publishedEvent.getId(), "127.0.0.1");
+            assertEquals(0L, resultDtoEmptyStats.getViews(), "Views should be 0 if stats service returns empty");
+
+            when(statsClient.getStats(any(LocalDateTime.class), any(LocalDateTime.class), eq(List.of(eventUri)), eq(true)))
+                .thenThrow(new RuntimeException("Stats service error"));
+
+            EventFullDto resultDtoErrorStats = eventService.getEventByIdPublic(publishedEvent.getId(), "127.0.0.1");
+            assertEquals(0L, resultDtoErrorStats.getViews(), "Views should be 0 if stats service throws error");
+            assertEquals(2L, resultDtoErrorStats.getConfirmedRequests());
+        }
+    }
+
+    @Nested
+    @DisplayName("Метод getEventsPublic")
+    class GetEventsPublicIntegrationTests {
+        private Event event1Pub, event2Pub, event3Pending, event4PastPub;
+
+        @BeforeEach
+        void setUpPublicEvents() {
+            event1Pub = Event.builder().title("Public Search Event Alpha")
+                .annotation("Alpha sports concert")
+                .description("Description for Public Search Event Alpha")
+                .category(category1).initiator(user1).location(location1).paid(false)
+                .eventDate(now.plusDays(5)).state(EventState.PUBLISHED)
+                .publishedOn(now.minusDays(1)).participantLimit(10).createdOn(now.minusDays(2))
+                .build(); // 5 подтверждённых запросов
+            event2Pub = Event.builder().title("Public Search Event Beta")
+                .annotation("Beta culture festival")
+                .description("Description for Public Search Event Beta")
+                .category(category2).initiator(user2).location(location2).paid(true)
+                .eventDate(now.plusDays(2)).state(EventState.PUBLISHED)
+                .publishedOn(now.minusDays(2)).participantLimit(3).createdOn(now.minusDays(3))
+                .build(); // 1 подтверждённый запрос
+            event3Pending = Event.builder().title("Public Search Event Gamma (Pending)")
+                .annotation("Gamma").description(
+                    "Description for Public Search Event Gamma (Pending)")
+                .category(category1).initiator(user1).location(location1).eventDate(now.plusDays(3))
+                .state(EventState.PENDING).createdOn(now.minusDays(1)).build();
+            event4PastPub = Event.builder().title("Past Public Event Delta")
+                .annotation("Delta retro")
+                .description("Description for Past Public Event Delta")
+                .category(category2).initiator(user2).location(location2).paid(false)
+                .eventDate(now.minusDays(1)).state(EventState.PUBLISHED)
+                .publishedOn(now.minusDays(2)).createdOn(now.minusDays(3)).build();
+
+            eventRepository.saveAll(List.of(event1Pub, event2Pub, event3Pending, event4PastPub));
+
+            requestRepository.save(ParticipationRequest.builder().event(event1Pub).requester(user2).status(RequestStatus.CONFIRMED).created(now).build());
+            requestRepository.save(ParticipationRequest.builder().event(event1Pub).requester(user3).status(RequestStatus.CONFIRMED).created(now).build());
+            for (int i = 0; i < 3; i++) {
+                User tempUser = userRepository.save(User.builder().name("Temp User " + i).email("temp"+i+"@mail.com").build());
+                requestRepository.save(ParticipationRequest.builder().event(event1Pub).requester(tempUser).status(RequestStatus.CONFIRMED).created(now).build());
+            }
+
+            requestRepository.save(ParticipationRequest.builder().event(event2Pub).requester(user1).status(RequestStatus.CONFIRMED).created(now).build());
+        }
+
+        @Test
+        @DisplayName("Должен возвращать только PUBLISHED события, если диапазон дат не указан (т.е. будущие)")
+        void getEventsPublic_noDateRange_shouldReturnFuturePublishedEvents() {
+            PublicEventSearchParams params = PublicEventSearchParams.builder().build();
+            when(statsClient.getStats(any(LocalDateTime.class), any(LocalDateTime.class), anyList(), anyBoolean()))
+                .thenReturn(Collections.emptyList());
+
+            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+
+            assertEquals(2, results.size(), "Should find 2 future published events (event1Pub, event2Pub)");
+            assertTrue(results.stream().anyMatch(e -> e.getId().equals(event1Pub.getId())));
+            assertTrue(results.stream().anyMatch(e -> e.getId().equals(event2Pub.getId())));
+        }
+
+        @Test
+        @DisplayName("Должен корректно фильтровать по тексту в аннотации или описании (регистронезависимо)")
+        void getEventsPublic_withTextFilter_shouldReturnMatchingEvents() {
+            PublicEventSearchParams params = PublicEventSearchParams.builder().text("alpha SpOrTs").build();
+            when(statsClient.getStats(any(), any(), anyList(), eq(true))).thenReturn(Collections.emptyList());
+
+            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+            assertEquals(1, results.size());
+            assertEquals(event1Pub.getId(), results.getFirst().getId());
+        }
+
+        @Test
+        @DisplayName("Должен корректно фильтровать по категориям")
+        void getEventsPublic_withCategoriesFilter_shouldReturnMatchingEvents() {
+            PublicEventSearchParams params = PublicEventSearchParams.builder().categories(List.of(category2.getId())).build();
+            when(statsClient.getStats(any(), any(), anyList(), eq(true))).thenReturn(Collections.emptyList());
+
+            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+            // event4PastPub не попадет в выборку, так как по умолчанию отбираются будущие события.
+            assertEquals(1, results.size(), "Expected 1 event in category B that is in the future and published");
+            assertEquals(event2Pub.getId(), results.getFirst().getId());
+        }
+
+        @Test
+        @DisplayName("Должен корректно фильтровать по платному участию (paid=true)")
+        void getEventsPublic_withPaidTrueFilter_shouldReturnPaidEvents() {
+            PublicEventSearchParams params = PublicEventSearchParams.builder().paid(true).build();
+            when(statsClient.getStats(any(), any(), anyList(), eq(true))).thenReturn(Collections.emptyList());
+
+            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+            assertEquals(1, results.size());
+            assertEquals(event2Pub.getId(), results.getFirst().getId());
+            assertTrue(results.getFirst().getPaid());
+        }
+
+        @Test
+        @DisplayName("Должен корректно фильтровать по диапазону дат, включая прошлое, если указан rangeStart")
+        void getEventsPublic_withDateRangeIncludingPast_shouldReturnMatchingEvents() {
+            PublicEventSearchParams params = PublicEventSearchParams.builder()
+                .rangeStart(now.minusDays(2))
+                .rangeEnd(now.plusDays(6))
+                .build();
+            when(statsClient.getStats(any(), any(), anyList(), eq(true))).thenReturn(Collections.emptyList());
+
+            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+
+            assertEquals(3, results.size(), "Should find event1Pub, event2Pub and event4PastPub");
+            assertTrue(results.stream().anyMatch(e -> e.getId().equals(event1Pub.getId())));
+            assertTrue(results.stream().anyMatch(e -> e.getId().equals(event4PastPub.getId())));
+        }
+
+        @Test
+        @DisplayName("Должен корректно фильтровать по onlyAvailable (только доступные)")
+        void getEventsPublic_withOnlyAvailableTrue_shouldReturnAvailableEvents() {
+            event4PastPub.setParticipantLimit(5);
+            requestRepository.save(ParticipationRequest.builder().event(event4PastPub).requester(user1).status(RequestStatus.CONFIRMED).created(now).build());
+            eventRepository.save(event4PastPub);
+
+
+            PublicEventSearchParams params = PublicEventSearchParams.builder()
+                .onlyAvailable(true)
+                .rangeStart(now.minusDays(5))
+                .build();
+            when(statsClient.getStats(any(), any(), anyList(), eq(true))).thenReturn(Collections.emptyList());
+
+            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+
+            assertEquals(3, results.size());
+            assertTrue(results.stream().anyMatch(e -> e.getId().equals(event1Pub.getId()) && e.getConfirmedRequests() == 5L));
+            assertTrue(results.stream().anyMatch(e -> e.getId().equals(event2Pub.getId()) && e.getConfirmedRequests() == 1L));
+            assertTrue(results.stream().anyMatch(e -> e.getId().equals(event4PastPub.getId()) && e.getConfirmedRequests() == 1L));
+
+            requestRepository.save(ParticipationRequest.builder().event(event2Pub).requester(user2).status(RequestStatus.CONFIRMED).created(now).build());
+            requestRepository.save(ParticipationRequest.builder().event(event2Pub).requester(user3).status(RequestStatus.CONFIRMED).created(now).build());
+
+            results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+            assertEquals(2, results.size(), "Event2Pub should now be unavailable");
+            assertFalse(results.stream().anyMatch(e -> e.getId().equals(event2Pub.getId())));
+        }
+
+        @Test
+        @DisplayName("Должен сортировать по просмотрам (VIEWS), если указано")
+        void getEventsPublic_withSortByViews_shouldSortByViewsDesc() {
+            String applicationName = "test-app-name";
+            String uri1 = "/events/" + event1Pub.getId();
+            String uri2 = "/events/" + event2Pub.getId();
+            PublicEventSearchParams params = PublicEventSearchParams.builder()
+                .sort("VIEWS")
+                .rangeStart(now.minusDays(5))
+                .build();
+
+            ViewStatsDto stat1 = new ViewStatsDto(applicationName, uri1, 100L);
+            ViewStatsDto stat2 = new ViewStatsDto(applicationName, uri2, 200L);
+            String uri4 = "/events/" + event4PastPub.getId();
+            ViewStatsDto stat4 = new ViewStatsDto(applicationName, uri4, 50L);
+
+            when(statsClient.getStats(any(LocalDateTime.class), any(LocalDateTime.class), anyList(), eq(true)))
+                .thenReturn(List.of(stat1, stat2, stat4));
+
+            List<EventShortDto> results = eventService.getEventsPublic(params, 0, 10, "127.0.0.1");
+
+            assertEquals(3, results.size());
+            assertEquals(event2Pub.getId(), results.get(0).getId(), "Event2 (200 views) should be first");
+            assertEquals(200L, results.get(0).getViews());
+            assertEquals(event1Pub.getId(), results.get(1).getId(), "Event1 (100 views) should be second");
+            assertEquals(100L, results.get(1).getViews());
+            assertEquals(event4PastPub.getId(), results.get(2).getId(), "Event4 (50 views) should be third");
+            assertEquals(50L, results.get(2).getViews());
+        }
+
+        @Test
+        @DisplayName("Должен сортировать по дате события (EVENT_DATE) по умолчанию или если указано")
+        void getEventsPublic_withSortByEventDate_shouldSortByEventDate() {
+            PublicEventSearchParams paramsDefaultSort = PublicEventSearchParams.builder().build();
+            PublicEventSearchParams paramsExplicitSort = PublicEventSearchParams.builder().sort("EVENT_DATE").build();
+
+            when(statsClient.getStats(any(), any(), anyList(), eq(true))).thenReturn(Collections.emptyList());
+
+            List<EventShortDto> resultsDefault = eventService.getEventsPublic(paramsDefaultSort, 0, 10, "127.0.0.1");
+            List<EventShortDto> resultsExplicit = eventService.getEventsPublic(paramsExplicitSort, 0, 10, "127.0.0.1");
+
+            assertEquals(2, resultsDefault.size());
+            assertEquals(event2Pub.getId(), resultsDefault.get(0).getId());
+            assertEquals(event1Pub.getId(), resultsDefault.get(1).getId());
+
+            assertEquals(2, resultsExplicit.size());
+            assertEquals(event2Pub.getId(), resultsExplicit.get(0).getId());
+            assertEquals(event1Pub.getId(), resultsExplicit.get(1).getId());
         }
     }
 }
