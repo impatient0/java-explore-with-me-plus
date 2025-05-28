@@ -55,4 +55,7 @@ public class NewEventDto {
     @NotBlank(message = "Поле title не может быть пустым")
     @Size(min = 3, max = 120, message = "Поле title должно быть от 3 до 120 символов")
     String title;
+
+    @Builder.Default
+    Boolean commentsEnabled = true;
 }

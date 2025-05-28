@@ -38,4 +38,5 @@ public class EventFullDto {
     EventState state;
     String title;
     Long views;
+    boolean commentsEnabled;
 }

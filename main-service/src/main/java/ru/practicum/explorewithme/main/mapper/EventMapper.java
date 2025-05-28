@@ -13,9 +13,8 @@ import ru.practicum.explorewithme.main.model.Event;
 public interface EventMapper {
 
     @Mappings({
-        @Mapping(source = "category", target = "category"),
-        @Mapping(source = "initiator", target = "initiator"),
-        @Mapping(source = "confirmedRequestsCount", target = "confirmedRequests")
+        @Mapping(source = "confirmedRequestsCount", target = "confirmedRequests"),
+        @Mapping(target = "views", ignore = true)
     })
     EventFullDto toEventFullDto(Event event);
 
@@ -23,15 +22,14 @@ public interface EventMapper {
     @Mapping(target = "publishedOn", ignore = true)
     @Mapping(target = "compilations", ignore = true)
     @Mapping(target = "initiator", ignore = true)
-    @Mapping(source = "category", target = "category")
+    @Mapping(target = "createdOn", ignore = true)
+    @Mapping(target = "confirmedRequestsCount", ignore = true)
     @Mapping(target = "state", expression = "java(ru.practicum.explorewithme.main.model.EventState.PENDING)")
     Event toEvent(NewEventDto newEventDto);
 
     List<EventFullDto> toEventFullDtoList(List<Event> events);
 
     @Mappings({
-        @Mapping(source = "category", target = "category"),
-        @Mapping(source = "initiator", target = "initiator"),
         @Mapping(source = "confirmedRequestsCount", target = "confirmedRequests"),
         @Mapping(target = "views", ignore = true)
     })

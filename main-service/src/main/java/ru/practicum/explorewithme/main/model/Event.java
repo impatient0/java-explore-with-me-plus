@@ -122,6 +122,12 @@ public class Event {
      *  Количество подтверждённых заявок
      */
     @Formula("(SELECT COUNT(r.id) FROM requests r WHERE r.event_id = id AND r.status = 'CONFIRMED')")
-    private Long confirmedRequestsCount;
+    private long confirmedRequestsCount;
+
+    /**
+     * Разрешены ли комментарии
+     */
+    @Column(name = "comments_enabled", nullable = false)
+    private boolean commentsEnabled;
 
 }

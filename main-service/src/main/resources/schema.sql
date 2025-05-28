@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS events (
     request_moderation BOOLEAN NOT NULL DEFAULT TRUE,
     state VARCHAR(20) NOT NULL,
     title VARCHAR(120) NOT NULL,
+    comments_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     CONSTRAINT fk_event_to_category FOREIGN KEY(category_id) REFERENCES categories(id),
     CONSTRAINT fk_event_to_user FOREIGN KEY(initiator_id) REFERENCES users(id)
 );
