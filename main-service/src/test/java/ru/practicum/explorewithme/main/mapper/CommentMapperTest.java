@@ -136,7 +136,7 @@ class CommentMapperTest {
 
     @Nested
     @DisplayName("Метод toComment (маппинг NewCommentDto -> Comment)")
-    class toCommentTests {
+    class ToCommentTests {
 
         @Test
         @DisplayName("Должен корректно маппить текст из NewCommentDto в Comment")
