@@ -9,7 +9,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.explorewithme.main.dto.CommentDto;
 import ru.practicum.explorewithme.main.service.CommentService;
-import ru.practicum.explorewithme.main.service.params.GetListUsersParameters;
 import ru.practicum.explorewithme.main.service.params.PublicCommentParameters;
 
 import java.util.List;
@@ -29,8 +28,8 @@ public class PublicCommentController {
             @PathVariable @Positive Long eventId,
             @RequestParam(name = "from", defaultValue = "0") @PositiveOrZero int from,
             @RequestParam(name = "size", defaultValue = "10") @Positive int size,
-            @RequestParam(defaultValue="createdOn,DESC") String sort) {
-        log.info("Public: Received request to get list comments for eventId:"+
+            @RequestParam(defaultValue = "createdOn,DESC") String sort) {
+        log.info("Public: Received request to get list comments for eventId:" +
                         " {}, parameters: from: {}, size: {}, sort: {}", eventId, from, size, sort);
         PublicCommentParameters parameters = PublicCommentParameters.builder()
                 .from(from)

@@ -8,7 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.explorewithme.main.dto.CommentDto;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.mapper.CommentMapper;
-import ru.practicum.explorewithme.main.model.Category;
 import ru.practicum.explorewithme.main.model.Comment;
 import ru.practicum.explorewithme.main.model.Event;
 import ru.practicum.explorewithme.main.repository.CommentRepository;
