@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.explorewithme.main.service.CommentService;
-import ru.practicum.explorewithme.main.service.RequestService;
 
 @RestController
 @RequestMapping("/users/{userId}")
@@ -17,7 +16,6 @@ import ru.practicum.explorewithme.main.service.RequestService;
 public class PrivateCommentController {
 
     private final CommentService commentService;
-    private final RequestService requestService;
 
     @DeleteMapping("/comments/{commentId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)

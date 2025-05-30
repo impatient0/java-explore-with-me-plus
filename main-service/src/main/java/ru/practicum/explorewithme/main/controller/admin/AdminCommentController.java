@@ -1,5 +1,6 @@
 package ru.practicum.explorewithme.main.controller.admin;
 
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -19,7 +20,7 @@ public class AdminCommentController {
 
     @DeleteMapping("/{commentId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteComment(@PathVariable Long commentId) {
+    public void deleteComment(@PathVariable @Positive Long commentId) {
         log.info("Admin: Received request to delete comment with Id: {}", commentId);
         commentService.deleteCommentByAdmin(commentId);
         log.info("Admin: Comment with Id: {} marked as deleted", commentId);
@@ -27,7 +28,7 @@ public class AdminCommentController {
 
     @PatchMapping("/{commentId}/restore")
     @ResponseStatus(HttpStatus.OK)
-    public CommentDto restoreComment(@PathVariable Long commentId) {
+    public CommentDto restoreComment(@PathVariable @Positive Long commentId) {
         log.info("Admin: Received request to restore comment with Id: {}", commentId);
         CommentDto restoredComment = commentService.restoreCommentByAdmin(commentId);
         log.info("Admin: Comment with Id: {} restored", commentId);
