@@ -193,7 +193,7 @@ public class PrivateCommentControllerTest {
                         .content(objectMapper.writeValueAsString(updateCommentDto)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0]").exists())
-                .andExpect(jsonPath("$.errors[0]").value("text: Comment text cannot be blank."));
+                .andExpect(jsonPath("$.errors[0]").value("text: Comment text must be between 1 and 2000 characters."));
     }
 
     @Test
