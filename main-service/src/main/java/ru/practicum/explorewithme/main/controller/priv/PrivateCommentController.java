@@ -37,7 +37,7 @@ public class PrivateCommentController {
 
     @PatchMapping("/{commentId}")
     @ResponseStatus(HttpStatus.OK)
-    public CommentDto updateComment (
+    public CommentDto updateComment(
             @PathVariable @Positive Long userId,
             @PathVariable @Positive Long commentId,
             @Valid @RequestBody UpdateCommentDto updateCommentDto) {
