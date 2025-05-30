@@ -1,14 +1,14 @@
 package ru.practicum.explorewithme.main.service.params;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
+import org.springframework.data.domain.Sort;
 
-@Data
-@Builder
+@Getter
+@Builder(toBuilder = true)
+@EqualsAndHashCode
 @AllArgsConstructor
 public class PublicCommentParameters {
     private final int from;
     private final int size;
-    private final String sort;
+    private final Sort sort;
 }

@@ -4,8 +4,9 @@ import lombok.*;
 
 import java.util.List;
 
-@Data
+@Getter
 @Builder
+@EqualsAndHashCode
 @AllArgsConstructor
 public class GetListUsersParameters {
     private final List<Long> ids;

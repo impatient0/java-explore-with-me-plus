@@ -10,11 +10,11 @@ import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.mapper.CommentMapper;
 import ru.practicum.explorewithme.main.model.Comment;
 import ru.practicum.explorewithme.main.model.Event;
+import ru.practicum.explorewithme.main.model.EventState;
 import ru.practicum.explorewithme.main.repository.CommentRepository;
 import ru.practicum.explorewithme.main.repository.EventRepository;
 import ru.practicum.explorewithme.main.service.params.PublicCommentParameters;
 
-import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -26,24 +26,20 @@ public class CommentServiceImpl implements CommentService {
     private final CommentMapper commentMapper;
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public List<CommentDto> getCommentsForEvent(Long eventId, PublicCommentParameters parameters) {
 
-        Pageable pageable = PageRequest.of(parameters.getFrom() / parameters.getSize(),
-                parameters.getSize());
-
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new EntityNotFoundException("Event", "Id", eventId));
+        Event event = eventRepository.findByIdAndState(eventId, EventState.PUBLISHED)
+                .orElseThrow(() -> new EntityNotFoundException("Published event", "Id", eventId));
 
         if (!event.isCommentsEnabled()) {
             return List.of();
         }
 
-        List<Comment> result = commentRepository.findByEventIdAndIsDeletedFalse(eventId, pageable).getContent().stream()
-                .sorted(parameters.getSort().equals("createdOn,ASC") ?
-                        Comparator.comparing(Comment::getCreatedOn) :
-                        Comparator.comparing(Comment::getCreatedOn).reversed())
-                .toList();
+        Pageable pageable = PageRequest.of(parameters.getFrom() / parameters.getSize(),
+                parameters.getSize(), parameters.getSort());
+
+        List<Comment> result = commentRepository.findByEventIdAndIsDeletedFalse(eventId, pageable).getContent();
 
         return commentMapper.toDtoList(result);
     }
