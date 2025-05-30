@@ -30,7 +30,7 @@ public class PublicCommentController {
             @PathVariable @Positive Long eventId,
             @RequestParam(name = "from", defaultValue = "0") @PositiveOrZero int from,
             @RequestParam(name = "size", defaultValue = "10") @Positive int size,
-            @Pattern( regexp = "^(createdOn),(ASC|DESC)$",
+            @Pattern(regexp = "^(createdOn),(ASC|DESC)$",
                       message = "Параметр sort должен иметь формат createdOn,ASC|DESC")
             @RequestParam(defaultValue = "createdOn,DESC") String sort) {
         log.info("Public: Received request to get list comments for eventId:" +

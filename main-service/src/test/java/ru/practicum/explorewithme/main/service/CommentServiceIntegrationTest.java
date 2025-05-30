@@ -229,7 +229,7 @@ class CommentServiceIntegrationTest {
                 .category(category)
                 .initiator(initiator)
                 .eventDate(LocalDateTime.now().plusDays(1))
-                .location( new Location(55.7522F, 37.6156F))
+                .location(new Location(55.7522F, 37.6156F))
                 .paid(false)
                 .participantLimit(0)
                 .requestModeration(false)
