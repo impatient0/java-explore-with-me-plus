@@ -1,5 +1,6 @@
 package ru.practicum.explorewithme.main.service;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -8,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.practicum.explorewithme.main.dto.CommentDto;
 import ru.practicum.explorewithme.main.dto.NewCommentDto;
+import ru.practicum.explorewithme.main.dto.UpdateCommentDto;
 import ru.practicum.explorewithme.main.error.BusinessRuleViolationException;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.mapper.CommentMapper;
@@ -19,6 +21,7 @@ import ru.practicum.explorewithme.main.repository.CommentRepository;
 import ru.practicum.explorewithme.main.repository.EventRepository;
 import ru.practicum.explorewithme.main.repository.UserRepository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,15 +44,29 @@ class CommentServiceImplTest {
 
     private long userId;
     private long eventId;
+    private long commentId;
     private User user;
     private Event event;
+    private Comment comment;
 
     @BeforeEach
     void setUp() {
         userId = 1L;
         eventId = 2L;
+        commentId = 10L;
         user = new User();
+        user.setId(userId);
+
         event = new Event();
+        event.setId(eventId);
+
+        comment = new Comment();
+        comment.setId(commentId);
+        comment.setAuthor(user);
+        comment.setDeleted(false);
+        comment.setEdited(false);
+        comment.setText("Old text");
+        comment.setCreatedOn(LocalDateTime.now().minusHours(7));
     }
 
     @Test
@@ -57,13 +74,14 @@ class CommentServiceImplTest {
         NewCommentDto newCommentDto = new NewCommentDto();
         event.setState(EventState.PUBLISHED);
         event.setCommentsEnabled(true);
-        Comment comment = new Comment();
+
         CommentDto commentDto = new CommentDto();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
         when(commentMapper.toComment(newCommentDto)).thenReturn(comment);
-        when(commentMapper.toDto(comment)).thenReturn(commentDto);
+        when(commentRepository.save(any(Comment.class))).thenReturn(comment);
+        when(commentMapper.toDto(any(Comment.class))).thenReturn(commentDto);
 
         CommentDto result = commentService.addComment(userId, eventId, newCommentDto);
 
@@ -113,5 +131,83 @@ class CommentServiceImplTest {
         BusinessRuleViolationException ex = assertThrows(BusinessRuleViolationException.class,
                 () -> commentService.addComment(userId, eventId, new NewCommentDto()));
         assertEquals("Комментарии запрещены", ex.getMessage());
+    }
+
+    // тесты для обновления
+
+    @Test
+    void updateUserComment_shouldUpdateCommentAndReturnDto() {
+        UpdateCommentDto updateCommentDto = new UpdateCommentDto();
+        updateCommentDto.setText("Updated text");
+
+        CommentDto expectedDto = new CommentDto();
+        expectedDto.setId(commentId);
+        expectedDto.setText("Updated text");
+
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+        when(commentMapper.toDto(any(Comment.class))).thenReturn(expectedDto);
+        when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CommentDto result = commentService.updateUserComment(userId, commentId, updateCommentDto);
+
+        Assertions.assertEquals("Updated text", result.getText());
+        Assertions.assertTrue(comment.isEdited());
+        verify(commentRepository).save(comment);
+    }
+
+    @Test
+    void updateUserComment_shouldThrowIfCommentNotFound() {
+        when(commentRepository.findById(commentId)).thenReturn(Optional.empty());
+        UpdateCommentDto dto = new UpdateCommentDto();
+
+        EntityNotFoundException ex = Assertions.assertThrows(
+                EntityNotFoundException.class,
+                () -> commentService.updateUserComment(userId, commentId, dto)
+        );
+        Assertions.assertTrue(ex.getMessage().contains("не найден"));
+    }
+
+    @Test
+    void updateUserComment_shouldThrowIfUserIsNotAuthor() {
+        User anotherUser = new User();
+        anotherUser.setId(111L);
+        comment.setAuthor(anotherUser);
+
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+        UpdateCommentDto dto = new UpdateCommentDto();
+
+        EntityNotFoundException ex = Assertions.assertThrows(
+                EntityNotFoundException.class,
+                () -> commentService.updateUserComment(userId, commentId, dto)
+        );
+        Assertions.assertTrue(ex.getMessage().contains("пользователя с id"));
+    }
+
+    @Test
+    void updateUserComment_shouldThrowIfDeleted() {
+        comment.setDeleted(true);
+
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+        UpdateCommentDto dto = new UpdateCommentDto();
+
+        BusinessRuleViolationException ex = Assertions.assertThrows(
+                BusinessRuleViolationException.class,
+                () -> commentService.updateUserComment(userId, commentId, dto)
+        );
+        Assertions.assertTrue(ex.getMessage().contains("удален"));
+    }
+
+    @Test
+    void updateUserComment_shouldThrowIfTooLate() {
+
+        comment.setCreatedOn(LocalDateTime.now().minusHours(2));
+        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+        UpdateCommentDto dto = new UpdateCommentDto();
+
+        BusinessRuleViolationException ex = Assertions.assertThrows(
+                BusinessRuleViolationException.class,
+                () -> commentService.updateUserComment(userId, commentId, dto)
+        );
+        Assertions.assertTrue(ex.getMessage().contains("Время для редактирования истекло"));
     }
 }

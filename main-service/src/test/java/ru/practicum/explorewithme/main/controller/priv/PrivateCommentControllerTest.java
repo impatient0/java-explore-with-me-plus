@@ -10,6 +10,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.practicum.explorewithme.main.dto.CommentDto;
 import ru.practicum.explorewithme.main.dto.NewCommentDto;
+import ru.practicum.explorewithme.main.dto.UpdateCommentDto;
 import ru.practicum.explorewithme.main.dto.UserShortDto;
 import ru.practicum.explorewithme.main.service.CommentService;
 
@@ -17,10 +18,12 @@ import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post; // <-- для post-запроса
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+
 
 @WebMvcTest(PrivateCommentController.class)
 public class PrivateCommentControllerTest {
@@ -63,6 +66,8 @@ public class PrivateCommentControllerTest {
                 .isEdited(false)
                 .build();
     }
+
+    // тесты для создания
 
     @Test
     void createComment_whenValidInput_thenReturnsCreatedComment() throws Exception {
@@ -109,4 +114,110 @@ public class PrivateCommentControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    //тесты для обновления
+
+    @Test
+    void updateComment_shouldReturnUpdatedComment_whenInputIsValid() throws Exception {
+        Long commentId = commentDto.getId();
+
+        UpdateCommentDto updateCommentDto = UpdateCommentDto.builder()
+                .text("Updated text")
+                .build();
+
+        CommentDto updatedComment = CommentDto.builder()
+                .id(commentId)
+                .text(updateCommentDto.getText())
+                .author(commentDto.getAuthor())
+                .eventId(eventId)
+                .createdOn(commentDto.getCreatedOn())
+                .updatedOn(commentDto.getUpdatedOn())
+                .isEdited(true)
+                .build();
+
+        when(commentService.updateUserComment(eq(userId), eq(commentId), any(UpdateCommentDto.class)))
+                .thenReturn(updatedComment);
+
+        mockMvc.perform(patch("/users/{userId}/comments/{commentId}", userId, commentId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateCommentDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(commentId))
+                .andExpect(jsonPath("$.text").value(updateCommentDto.getText()))
+                .andExpect(jsonPath("$.author.id").value(commentDto.getAuthor().getId()))
+                .andExpect(jsonPath("$.isEdited").value(true));
+
+        verify(commentService, times(1))
+                .updateUserComment(eq(userId), eq(commentId), any(UpdateCommentDto.class));
+    }
+
+    @Test
+    void updateComment_shouldReturnBadRequest_whenPathVariablesInvalid() throws Exception {
+        UpdateCommentDto updateCommentDto = UpdateCommentDto.builder()
+                .text("Comment text")
+                .build();
+
+        mockMvc.perform(patch("/users/{userId}/comments/{commentId}", -1, 10)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateCommentDto)))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(patch("/users/{userId}/comments/{commentId}", 1, -10)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateCommentDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void updateComment_shouldReturnBadRequest_whenBodyTextBlank() throws Exception {
+        UpdateCommentDto updateCommentDto = UpdateCommentDto.builder()
+                .text("   ")
+                .build();
+
+        mockMvc.perform(patch("/users/{userId}/comments/{commentId}", userId, commentDto.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateCommentDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0]").exists())
+                .andExpect(jsonPath("$.errors[0]").value("text: Comment text cannot be blank."));
+    }
+
+    @Test
+    void updateComment_shouldReturnBadRequest_whenBodyTextTooShort() throws Exception {
+
+        UpdateCommentDto updateCommentDto = UpdateCommentDto.builder()
+                .text("")
+                .build();
+
+        mockMvc.perform(patch("/users/{userId}/comments/{commentId}", userId, commentDto.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateCommentDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0]").exists())
+                .andExpect(jsonPath("$.errors[0]").value("text: Comment text cannot be blank."));
+    }
+
+    @Test
+    void updateComment_shouldReturnBadRequest_whenBodyTextTooLong() throws Exception {
+        String longText = "a".repeat(2001);
+        UpdateCommentDto updateCommentDto = UpdateCommentDto.builder()
+                .text(longText)
+                .build();
+
+        mockMvc.perform(patch("/users/{userId}/comments/{commentId}", userId, commentDto.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateCommentDto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0]").exists())
+                .andExpect(jsonPath("$.errors[0]").value("text: Comment text must be between 1 and 2000 characters."));
+    }
+
+    @Test
+    void updateComment_shouldReturnBadRequest_whenBodyEmpty() throws Exception {
+        mockMvc.perform(patch("/users/{userId}/comments/{commentId}", userId, commentDto.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0]").exists())
+                .andExpect(jsonPath("$.errors[0]").value("text: Comment text cannot be blank."));
+    }
 }
