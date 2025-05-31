@@ -1,14 +1,13 @@
 package ru.practicum.explorewithme.main.service.params;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 import ru.practicum.explorewithme.main.model.RequestStatus;
 
 import java.util.List;
 
-@Data
+@Getter
 @Builder
+@EqualsAndHashCode
 @AllArgsConstructor
 public class EventRequestStatusUpdateRequestParams {
     private final Long userId;
