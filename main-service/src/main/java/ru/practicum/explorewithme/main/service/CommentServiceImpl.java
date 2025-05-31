@@ -111,7 +111,7 @@ public class CommentServiceImpl implements CommentService {
             throw new EntityNotFoundException("Искомый комментарий с id " + commentId + " пользователя с id " + userId + "не найден");
         }
 
-        if (existedComment.isDeleted() == true) {
+        if (existedComment.isDeleted()) {
             throw new BusinessRuleViolationException("Редактирование невозможно. Комментарий удален");
         }
 
