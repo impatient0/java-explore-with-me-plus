@@ -294,11 +294,11 @@ class CommentServiceIntegrationTest {
                             .isEqualTo(user1.getId())),
                 () -> assertThat(results)
                     .as("Комментарий 1 для user1 (ID: %s) должен присутствовать", comment1User1Event1.getId())
-                    .extracting(CommentDto::getId) // Extracts all IDs from the list of CommentDto
+                    .extracting(CommentDto::getId)
                     .contains(comment1User1Event1.getId()),
                 () -> assertThat(results)
                     .as("Комментарий 2 для user1 (удален) (ID: %s) должен присутствовать", comment3User1Event1Deleted.getId())
-                    .extracting(CommentDto::getId) // Extracts all IDs from the list of CommentDto
+                    .extracting(CommentDto::getId)
                     .contains(comment3User1Event1Deleted.getId())
             );
         }
@@ -335,7 +335,7 @@ class CommentServiceIntegrationTest {
                     .hasSize(3),
                 () -> assertThat(results)
                     .as("Удаленный комментарий (comment2 ID: %s) НЕ должен присутствовать в результатах", comment3User1Event1Deleted.getId())
-                    .extracting(CommentDto::getId) // Extract IDs from the DTOs
+                    .extracting(CommentDto::getId)
                     .doesNotContain(comment3User1Event1Deleted.getId()),
                 () -> assertThat(results)
                     .as("Комментарий1 (ID: %s) должен присутствовать в результатах", comment1User1Event1.getId())
