@@ -3,13 +3,14 @@ package ru.practicum.explorewithme.main.service;
 import ru.practicum.explorewithme.main.dto.CommentDto;
 import ru.practicum.explorewithme.main.dto.NewCommentDto;
 import ru.practicum.explorewithme.main.dto.UpdateCommentDto;
+import ru.practicum.explorewithme.main.service.params.AdminCommentSearchParams;
 import ru.practicum.explorewithme.main.service.params.PublicCommentParameters;
 
 import java.util.List;
 
 public interface CommentService {
 
-    List<CommentDto> getCommentsForEvent(Long eventId, PublicCommentParameters commentParameters);
+    List<CommentDto> getCommentsForEvent(Long eventId, PublicCommentParameters publicCommentParameters);
 
     List<CommentDto> getUserComments(Long userId, int from, int size);
 
@@ -22,4 +23,6 @@ public interface CommentService {
     void deleteUserComment(Long userId, Long commentId);
 
     CommentDto restoreCommentByAdmin(Long commentId);
+
+    List<CommentDto> getAllCommentsAdmin(AdminCommentSearchParams searchParams, int from, int size);
 }
