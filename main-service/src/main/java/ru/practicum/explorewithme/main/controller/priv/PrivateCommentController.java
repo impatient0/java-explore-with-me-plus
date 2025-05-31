@@ -30,7 +30,7 @@ public class PrivateCommentController {
             @PathVariable @Positive Long userId,
             @RequestParam @Positive Long eventId,
             @Valid @RequestBody NewCommentDto newCommentDto) {
-        log.info("Создание нового комментария {} зарегистрированным пользователем c id {} к событию с id {}", 
+        log.info("Создание нового комментария {} зарегистрированным пользователем c id {} к событию с id {}",
                 newCommentDto, userId, eventId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(commentService.addComment(userId, eventId, newCommentDto));
@@ -41,7 +41,7 @@ public class PrivateCommentController {
             @PathVariable @Positive Long userId,
             @PathVariable @Positive Long commentId,
             @Valid @RequestBody UpdateCommentDto updateCommentDto) {
-        log.info("Обновление комментария c id {} пользователем c id {}, новый комментарий {}", 
+        log.info("Обновление комментария c id {} пользователем c id {}, новый комментарий {}",
                 commentId, userId, updateCommentDto);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(commentService.updateUserComment(userId, commentId, updateCommentDto));
