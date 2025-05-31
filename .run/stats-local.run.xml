@@ -6,7 +6,7 @@
     <module name="stats-server" />
     <option name="VM_PARAMETERS" value="-Dspring.profiles.active=local" />
     <method v="2">
-      <option name="Make" enabled="true" />
+      <option name="RunConfigurationTask" enabled="true" run_configuration_name="db-services" run_configuration_type="docker-deploy" />
     </method>
   </configuration>
 </component>
