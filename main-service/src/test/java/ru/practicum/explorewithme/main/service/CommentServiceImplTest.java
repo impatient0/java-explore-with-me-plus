@@ -226,9 +226,9 @@ class CommentServiceImplTest {
     class GetUserComments {
 
         @Test
-        void getUserComments_shouldReturnEmptyList_whenNoComments() {
+        void getUserCommentsshouldReturnEmptyListwhenNoComments() {
 
-            when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
+            when(userRepository.existsById(userId)).thenReturn(true);
             when(commentRepository.findByAuthorIdAndIsDeletedFalse(eq(userId), any(Pageable.class)))
                     .thenReturn(new PageImpl<>(List.of()));
             when(commentMapper.toDtoList(List.of())).thenReturn(List.of());
@@ -237,19 +237,19 @@ class CommentServiceImplTest {
 
             assertThat(result).isEmpty();
 
-            verify(userRepository).findById(userId);
+            verify(userRepository).existsById(userId);
             verify(commentRepository).findByAuthorIdAndIsDeletedFalse(eq(userId), any(Pageable.class));
             verify(commentMapper).toDtoList(List.of());
         }
 
         @Test
-        void getUserComments_shouldReturnCommentsDtoList_whenCommentsExist() {
+        void getUserCommentsshouldReturnCommentsDtoListwhenCommentsExist() {
 
             List<Comment> comments = List.of(comment);
-            CommentDto commentDto = new CommentDto(); // настрой по необходимости
+            CommentDto commentDto = new CommentDto();
             List<CommentDto> commentDtos = List.of(commentDto);
 
-            when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
+            when(userRepository.existsById(userId)).thenReturn(true);
             when(commentRepository.findByAuthorIdAndIsDeletedFalse(eq(userId), any(Pageable.class)))
                     .thenReturn(new PageImpl<>(comments));
             when(commentMapper.toDtoList(comments)).thenReturn(commentDtos);
@@ -258,15 +258,15 @@ class CommentServiceImplTest {
 
             assertThat(result).isEqualTo(commentDtos);
 
-            verify(userRepository).findById(userId);
+            verify(userRepository).existsById(userId);
             verify(commentRepository).findByAuthorIdAndIsDeletedFalse(eq(userId), any(Pageable.class));
             verify(commentMapper).toDtoList(comments);
         }
 
         @Test
-        void getUserComments_shouldThrowException_whenUserNotFound() {
+        void getUserCommentsshouldThrowExceptionwhenUserNotFound() {
 
-            when(userRepository.findById(userId)).thenReturn(java.util.Optional.empty());
+            when(userRepository.existsById(userId)).thenReturn(false);
 
             EntityNotFoundException exception = assertThrows(
                     EntityNotFoundException.class,
@@ -274,7 +274,7 @@ class CommentServiceImplTest {
             );
 
             assertThat(exception.getMessage()).contains("Пользователь с id " + userId + " не найден");
-            verify(userRepository).findById(userId);
+            verify(userRepository).existsById(userId);
             verifyNoInteractions(commentRepository, commentMapper);
         }
     }
