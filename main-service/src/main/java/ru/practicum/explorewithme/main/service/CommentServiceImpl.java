@@ -24,39 +24,33 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
 
-    UserRepository userRepository;
-    EventRepository eventRepository;
-    CommentMapper commentMapper;
-    CommentRepository commentRepository;
+    private final UserRepository userRepository;
+    private final EventRepository eventRepository;
+    private final CommentMapper commentMapper;
+    private final CommentRepository commentRepository;
 
     @Override
     @Transactional
     public CommentDto addComment(Long userId, Long eventId, NewCommentDto newCommentDto) {
 
-        Optional<User> user = userRepository.findById(userId);
+        User author = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь с id " + userId + " не найден"));
 
-        if (user.isEmpty()) {
-            throw new EntityNotFoundException("Пользователь с id " + userId + " не найден");
-        }
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException("Событие с id " + eventId + " не найдено"));
 
-        Optional<Event> event = eventRepository.findById(eventId);
-
-        if (event.isEmpty()) {
-            throw new EntityNotFoundException("Событие с id " + eventId + " не найден");
-        }
-
-        if (!event.get().getState().equals(EventState.PUBLISHED)) {
+        if (!event.getState().equals(EventState.PUBLISHED)) {
             throw new BusinessRuleViolationException("Событие еще не опубликовано");
         }
 
-        if (!event.get().isCommentsEnabled()) {
+        if (!event.isCommentsEnabled()) {
             throw new BusinessRuleViolationException("Комментарии запрещены");
         }
 
         Comment comment = commentMapper.toComment(newCommentDto);
 
-        comment.setAuthor(user.get());
-        comment.setEvent(event.get());
+        comment.setAuthor(author);
+        comment.setEvent(event);
 
         return commentMapper.toDto(commentRepository.save(comment));
     }
@@ -81,13 +75,12 @@ public class CommentServiceImpl implements CommentService {
             throw new BusinessRuleViolationException("Редактирование невозможно. Комментарий удален");
         }
 
-        if (existedComment.getCreatedOn().isAfter(LocalDateTime.now().minusHours(6))) {
+        if (existedComment.getCreatedOn().isBefore(LocalDateTime.now().minusHours(6))) {
             throw new BusinessRuleViolationException("Время для редактирования истекло");
         }
 
         existedComment.setText(updateCommentDto.getText());
         existedComment.setEdited(true);
-        existedComment.setUpdatedOn(LocalDateTime.now());
 
         return commentMapper.toDto(commentRepository.save(existedComment));
     }

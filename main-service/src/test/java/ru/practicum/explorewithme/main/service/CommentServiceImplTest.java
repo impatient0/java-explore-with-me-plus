@@ -1,8 +1,6 @@
 package ru.practicum.explorewithme.main.service;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -66,148 +64,156 @@ class CommentServiceImplTest {
         comment.setDeleted(false);
         comment.setEdited(false);
         comment.setText("Old text");
-        comment.setCreatedOn(LocalDateTime.now().minusHours(7));
+        comment.setCreatedOn(LocalDateTime.now().minusHours(5));
     }
 
-    @Test
-    void addComment_success() {
-        NewCommentDto newCommentDto = new NewCommentDto();
-        event.setState(EventState.PUBLISHED);
-        event.setCommentsEnabled(true);
+    @Nested
+    @DisplayName("Набор тестов для метода addComment")
+    class addComment {
 
-        CommentDto commentDto = new CommentDto();
+        @Test
+        void addComment_success() {
+            NewCommentDto newCommentDto = new NewCommentDto();
+            event.setState(EventState.PUBLISHED);
+            event.setCommentsEnabled(true);
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
-        when(commentMapper.toComment(newCommentDto)).thenReturn(comment);
-        when(commentRepository.save(any(Comment.class))).thenReturn(comment);
-        when(commentMapper.toDto(any(Comment.class))).thenReturn(commentDto);
+            CommentDto commentDto = new CommentDto();
 
-        CommentDto result = commentService.addComment(userId, eventId, newCommentDto);
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+            when(commentMapper.toComment(newCommentDto)).thenReturn(comment);
+            when(commentRepository.save(any(Comment.class))).thenReturn(comment);
+            when(commentMapper.toDto(any(Comment.class))).thenReturn(commentDto);
 
-        assertEquals(commentDto, result);
-        verify(commentRepository, times(1)).save(comment);
-        assertEquals(user, comment.getAuthor());
-        assertEquals(event, comment.getEvent());
+            CommentDto result = commentService.addComment(userId, eventId, newCommentDto);
+
+            assertEquals(commentDto, result);
+            verify(commentRepository, times(1)).save(comment);
+            assertEquals(user, comment.getAuthor());
+            assertEquals(event, comment.getEvent());
+        }
+
+        @Test
+        void addComment_userNotFound() {
+            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
+                    () -> commentService.addComment(userId, 2L, new NewCommentDto()));
+            assertTrue(ex.getMessage().contains("Пользователь с id " + userId + " не найден"));
+        }
+
+        @Test
+        void addComment_eventNotFound() {
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(eventRepository.findById(eventId)).thenReturn(Optional.empty());
+
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
+                    () -> commentService.addComment(userId, eventId, new NewCommentDto()));
+            assertTrue(ex.getMessage().contains("Событие с id " + eventId + " не найден"));
+        }
+
+        @Test
+        void addComment_eventNotPublished() {
+            event.setState(EventState.PENDING); // не опубликовано
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+
+            BusinessRuleViolationException ex = assertThrows(BusinessRuleViolationException.class,
+                    () -> commentService.addComment(userId, eventId, new NewCommentDto()));
+            assertEquals("Событие еще не опубликовано", ex.getMessage());
+        }
+
+        @Test
+        void addComment_commentsDisabled() {
+            event.setState(EventState.PUBLISHED);
+            event.setCommentsEnabled(false); // Комментарии запрещены
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+
+            BusinessRuleViolationException ex = assertThrows(BusinessRuleViolationException.class,
+                    () -> commentService.addComment(userId, eventId, new NewCommentDto()));
+            assertEquals("Комментарии запрещены", ex.getMessage());
+        }
     }
 
-    @Test
-    void addComment_userNotFound() {
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+    @Nested
+    @DisplayName("Набор тестов для метода updateUserComment")
+    class updateUserComment {
 
-        EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                () -> commentService.addComment(userId, 2L, new NewCommentDto()));
-        assertTrue(ex.getMessage().contains("Пользователь с id " + userId + " не найден"));
-    }
+        @Test
+        void updateUserComment_shouldUpdateCommentAndReturnDto() {
+            UpdateCommentDto updateCommentDto = new UpdateCommentDto();
+            updateCommentDto.setText("Updated text");
 
-    @Test
-    void addComment_eventNotFound() {
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(eventRepository.findById(eventId)).thenReturn(Optional.empty());
+            CommentDto expectedDto = new CommentDto();
+            expectedDto.setId(commentId);
+            expectedDto.setText("Updated text");
 
-        EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
-                () -> commentService.addComment(userId, eventId, new NewCommentDto()));
-        assertTrue(ex.getMessage().contains("Событие с id " + eventId + " не найден"));
-    }
+            when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+            when(commentMapper.toDto(any(Comment.class))).thenReturn(expectedDto);
+            when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-    @Test
-    void addComment_eventNotPublished() {
-        event.setState(EventState.PENDING); // не опубликовано
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+            CommentDto result = commentService.updateUserComment(userId, commentId, updateCommentDto);
 
-        BusinessRuleViolationException ex = assertThrows(BusinessRuleViolationException.class,
-                () -> commentService.addComment(userId, eventId, new NewCommentDto()));
-        assertEquals("Событие еще не опубликовано", ex.getMessage());
-    }
+            Assertions.assertEquals("Updated text", result.getText());
+            Assertions.assertTrue(comment.isEdited());
+            verify(commentRepository).save(comment);
+        }
 
-    @Test
-    void addComment_commentsDisabled() {
-        event.setState(EventState.PUBLISHED);
-        event.setCommentsEnabled(false); // Комментарии запрещены
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        @Test
+        void updateUserComment_shouldThrowIfCommentNotFound() {
+            when(commentRepository.findById(commentId)).thenReturn(Optional.empty());
+            UpdateCommentDto dto = new UpdateCommentDto();
 
-        BusinessRuleViolationException ex = assertThrows(BusinessRuleViolationException.class,
-                () -> commentService.addComment(userId, eventId, new NewCommentDto()));
-        assertEquals("Комментарии запрещены", ex.getMessage());
-    }
+            EntityNotFoundException ex = Assertions.assertThrows(
+                    EntityNotFoundException.class,
+                    () -> commentService.updateUserComment(userId, commentId, dto)
+            );
+            Assertions.assertTrue(ex.getMessage().contains("не найден"));
+        }
 
-    // тесты для обновления
+        @Test
+        void updateUserComment_shouldThrowIfUserIsNotAuthor() {
+            User anotherUser = new User();
+            anotherUser.setId(111L);
+            comment.setAuthor(anotherUser);
 
-    @Test
-    void updateUserComment_shouldUpdateCommentAndReturnDto() {
-        UpdateCommentDto updateCommentDto = new UpdateCommentDto();
-        updateCommentDto.setText("Updated text");
+            when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+            UpdateCommentDto dto = new UpdateCommentDto();
 
-        CommentDto expectedDto = new CommentDto();
-        expectedDto.setId(commentId);
-        expectedDto.setText("Updated text");
+            EntityNotFoundException ex = Assertions.assertThrows(
+                    EntityNotFoundException.class,
+                    () -> commentService.updateUserComment(userId, commentId, dto)
+            );
+            Assertions.assertTrue(ex.getMessage().contains("пользователя с id"));
+        }
 
-        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
-        when(commentMapper.toDto(any(Comment.class))).thenReturn(expectedDto);
-        when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        @Test
+        void updateUserComment_shouldThrowIfDeleted() {
+            comment.setDeleted(true);
 
-        CommentDto result = commentService.updateUserComment(userId, commentId, updateCommentDto);
+            when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+            UpdateCommentDto dto = new UpdateCommentDto();
 
-        Assertions.assertEquals("Updated text", result.getText());
-        Assertions.assertTrue(comment.isEdited());
-        verify(commentRepository).save(comment);
-    }
+            BusinessRuleViolationException ex = Assertions.assertThrows(
+                    BusinessRuleViolationException.class,
+                    () -> commentService.updateUserComment(userId, commentId, dto)
+            );
+            Assertions.assertTrue(ex.getMessage().contains("удален"));
+        }
 
-    @Test
-    void updateUserComment_shouldThrowIfCommentNotFound() {
-        when(commentRepository.findById(commentId)).thenReturn(Optional.empty());
-        UpdateCommentDto dto = new UpdateCommentDto();
+        @Test
+        void updateUserComment_shouldThrowIfTooLate() {
 
-        EntityNotFoundException ex = Assertions.assertThrows(
-                EntityNotFoundException.class,
-                () -> commentService.updateUserComment(userId, commentId, dto)
-        );
-        Assertions.assertTrue(ex.getMessage().contains("не найден"));
-    }
+            comment.setCreatedOn(LocalDateTime.now().minusHours(7));
+            when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
+            UpdateCommentDto dto = new UpdateCommentDto();
 
-    @Test
-    void updateUserComment_shouldThrowIfUserIsNotAuthor() {
-        User anotherUser = new User();
-        anotherUser.setId(111L);
-        comment.setAuthor(anotherUser);
-
-        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
-        UpdateCommentDto dto = new UpdateCommentDto();
-
-        EntityNotFoundException ex = Assertions.assertThrows(
-                EntityNotFoundException.class,
-                () -> commentService.updateUserComment(userId, commentId, dto)
-        );
-        Assertions.assertTrue(ex.getMessage().contains("пользователя с id"));
-    }
-
-    @Test
-    void updateUserComment_shouldThrowIfDeleted() {
-        comment.setDeleted(true);
-
-        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
-        UpdateCommentDto dto = new UpdateCommentDto();
-
-        BusinessRuleViolationException ex = Assertions.assertThrows(
-                BusinessRuleViolationException.class,
-                () -> commentService.updateUserComment(userId, commentId, dto)
-        );
-        Assertions.assertTrue(ex.getMessage().contains("удален"));
-    }
-
-    @Test
-    void updateUserComment_shouldThrowIfTooLate() {
-
-        comment.setCreatedOn(LocalDateTime.now().minusHours(2));
-        when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
-        UpdateCommentDto dto = new UpdateCommentDto();
-
-        BusinessRuleViolationException ex = Assertions.assertThrows(
-                BusinessRuleViolationException.class,
-                () -> commentService.updateUserComment(userId, commentId, dto)
-        );
-        Assertions.assertTrue(ex.getMessage().contains("Время для редактирования истекло"));
+            BusinessRuleViolationException ex = Assertions.assertThrows(
+                    BusinessRuleViolationException.class,
+                    () -> commentService.updateUserComment(userId, commentId, dto)
+            );
+            Assertions.assertTrue(ex.getMessage().contains("Время для редактирования истекло"));
+        }
     }
 }

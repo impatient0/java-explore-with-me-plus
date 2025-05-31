@@ -37,7 +37,7 @@ public class PrivateCommentController {
 
     @PatchMapping("/{commentId}")
     @ResponseStatus(HttpStatus.OK)
-    public CommentDto updateComment(
+    public ResponseEntity<CommentDto> updateComment(
             @PathVariable @Positive Long userId,
             @PathVariable @Positive Long commentId,
             @Valid @RequestBody UpdateCommentDto updateCommentDto) {
@@ -45,6 +45,6 @@ public class PrivateCommentController {
         log.info("Обновление комментария c id {} пользователем c id {}," +
                 " новый комментарий {}", commentId, userId, updateCommentDto);
 
-        return commentService.updateUserComment(userId, commentId, updateCommentDto);
+        return ResponseEntity.status(HttpStatus.OK).body(commentService.updateUserComment(userId, commentId, updateCommentDto));
     }
 }
