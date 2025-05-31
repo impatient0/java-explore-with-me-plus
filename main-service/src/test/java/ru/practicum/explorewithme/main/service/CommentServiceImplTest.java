@@ -1,12 +1,21 @@
 package ru.practicum.explorewithme.main.service;
 
+import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Predicate;
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import ru.practicum.explorewithme.main.dto.CommentDto;
 import ru.practicum.explorewithme.main.dto.NewCommentDto;
 import ru.practicum.explorewithme.main.dto.UpdateCommentDto;
@@ -24,6 +33,7 @@ import ru.practicum.explorewithme.main.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import ru.practicum.explorewithme.main.service.params.AdminCommentSearchParams;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -43,6 +53,12 @@ class CommentServiceImplTest {
 
     @InjectMocks
     private CommentServiceImpl commentService;
+
+    // пока не нужен, но пригодится для тестов Лериных методов
+    @Captor
+    private ArgumentCaptor<Comment> commentArgumentCaptor;
+    @Captor
+    private ArgumentCaptor<Predicate> predicateCaptor;
 
     private long userId;
     private long eventId;
@@ -276,6 +292,270 @@ class CommentServiceImplTest {
             assertThat(exception.getMessage()).contains("Пользователь с id " + userId + " не найден");
             verify(userRepository).existsById(userId);
             verifyNoInteractions(commentRepository, commentMapper);
+        }
+    }
+
+/*
+    тесты для методов из Лериного PR
+
+    @Nested
+    @DisplayName("Метод deleteCommentByAdmin")
+    class DeleteCommentByAdminTests {
+        private Comment existingComment;
+
+        @BeforeEach
+        void setUpDeleteAdmin() {
+            existingComment = new Comment();
+            existingComment.setId(commentId);
+            existingComment.setDeleted(false);
+        }
+
+        @Test
+        @DisplayName("Должен пометить комментарий как удаленный, если он не был удален")
+        void deleteCommentByAdmin_whenNotDeleted_shouldMarkAsDeletedAndSave() {
+            when(commentRepository.findById(commentId)).thenReturn(Optional.of(existingComment));
+            when(commentRepository.save(any(Comment.class))).thenReturn(existingComment);
+
+            commentService.deleteCommentByAdmin(commentId);
+
+            verify(commentRepository).findById(commentId);
+            verify(commentRepository).save(commentCaptor.capture());
+            Comment savedComment = commentCaptor.getValue();
+            assertTrue(savedComment.isDeleted());
+        }
+
+        @Test
+        @DisplayName("Не должен вызывать save, если комментарий уже удален")
+        void deleteCommentByAdmin_whenAlreadyDeleted_shouldDoNothing() {
+            existingComment.setDeleted(true);
+            when(commentRepository.findById(commentId)).thenReturn(Optional.of(existingComment));
+
+            commentService.deleteCommentByAdmin(commentId);
+
+            verify(commentRepository).findById(commentId);
+            verify(commentRepository, never()).save(any(Comment.class));
+        }
+
+        @Test
+        @DisplayName("Должен выбросить EntityNotFoundException, если комментарий не найден")
+        void deleteCommentByAdmin_whenCommentNotFound_shouldThrowEntityNotFoundException() {
+            when(commentRepository.findById(commentId)).thenReturn(Optional.empty());
+
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
+                () -> commentService.deleteCommentByAdmin(commentId));
+            assertTrue(ex.getMessage().contains("Comment with id=" + commentId + " not found"));
+            verify(commentRepository).findById(commentId);
+            verify(commentRepository, never()).save(any(Comment.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("Метод deleteUserComment")
+    class DeleteUserCommentTests {
+        private Comment userComment;
+        private Long nonAuthorUserId = 999L;
+
+        @BeforeEach
+        void setUpDeleteUser() {
+            userComment = new Comment();
+            userComment.setId(commentId);
+            userComment.setAuthor(user);
+            userComment.setDeleted(false);
+        }
+
+        @Test
+        @DisplayName("Пользователь должен успешно 'мягко' удалять свой комментарий")
+        void deleteUserComment_whenUserIsAuthor_shouldMarkAsDeleted() {
+            when(commentRepository.findById(commentId)).thenReturn(Optional.of(userComment));
+            when(commentRepository.save(any(Comment.class))).thenReturn(userComment);
+
+            commentService.deleteUserComment(userId, commentId);
+
+            verify(commentRepository).findById(commentId);
+            verify(commentRepository).save(commentCaptor.capture());
+            Comment savedComment = commentCaptor.getValue();
+            assertTrue(savedComment.isDeleted());
+        }
+
+        @Test
+        @DisplayName("Должен выбросить EntityNotFoundException, если пользователь не автор")
+        void deleteUserComment_whenUserIsNotAuthor_shouldThrowException() {
+            when(commentRepository.findById(commentId)).thenReturn(Optional.of(userComment));
+
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class, () -> {
+                commentService.deleteUserComment(nonAuthorUserId, commentId);
+            });
+            assertTrue(ex.getMessage().contains("is not the author"));
+
+            verify(commentRepository).findById(commentId);
+            verify(commentRepository, never()).save(any(Comment.class));
+        }
+
+        @Test
+        @DisplayName("Не должен вызывать save, если комментарий уже удален пользователем")
+        void deleteUserComment_whenAlreadyDeleted_shouldDoNothing() {
+            userComment.setDeleted(true);
+            when(commentRepository.findById(commentId)).thenReturn(Optional.of(userComment));
+
+            commentService.deleteUserComment(userId, commentId);
+
+            verify(commentRepository).findById(commentId);
+            verify(commentRepository, never()).save(any(Comment.class));
+        }
+
+        @Test
+        @DisplayName("Должен выбросить EntityNotFoundException, если комментарий не найден")
+        void deleteUserComment_whenCommentNotFound_shouldThrowEntityNotFoundException() {
+            when(commentRepository.findById(commentId)).thenReturn(Optional.empty());
+
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
+                () -> commentService.deleteUserComment(userId, commentId));
+            assertTrue(ex.getMessage().contains("Comment with id=" + commentId + " not found"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Метод restoreCommentByAdmin")
+    class RestoreCommentByAdminTests {
+        private Comment deletedComment;
+        private Comment notDeletedComment;
+        private CommentDto mappedDto;
+
+        @BeforeEach
+        void setUpRestore() {
+            deletedComment = new Comment();
+            deletedComment.setId(commentId);
+            deletedComment.setDeleted(true);
+            deletedComment.setText("Some text");
+
+            notDeletedComment = new Comment();
+            notDeletedComment.setId(commentId + 1);
+            notDeletedComment.setDeleted(false);
+            notDeletedComment.setText("Another text");
+
+            mappedDto = CommentDto.builder().id(commentId).text("Some text").isEdited(false).build();
+        }
+
+        @Test
+        @DisplayName("Должен восстанавливать удаленный комментарий и возвращать DTO")
+        void restoreCommentByAdmin_whenCommentIsDeleted_shouldRestoreAndReturnDto() {
+            when(commentRepository.findById(commentId)).thenReturn(Optional.of(deletedComment));
+            when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(commentMapper.toDto(any(Comment.class))).thenReturn(mappedDto);
+
+            CommentDto result = commentService.restoreCommentByAdmin(commentId);
+
+            assertNotNull(result);
+            assertEquals(mappedDto.getText(), result.getText());
+            verify(commentRepository).findById(commentId);
+            verify(commentRepository).save(commentCaptor.capture());
+            Comment savedComment = commentCaptor.getValue();
+            assertFalse(savedComment.isDeleted());
+            verify(commentMapper).toDto(savedComment);
+        }
+
+        @Test
+        @DisplayName("Должен возвращать DTO без изменений, если комментарий не был удален")
+        void restoreCommentByAdmin_whenCommentIsNotDeleted_shouldReturnDtoWithoutSaving() {
+            when(commentRepository.findById(notDeletedComment.getId())).thenReturn(Optional.of(notDeletedComment));
+            when(commentMapper.toDto(notDeletedComment)).thenReturn(
+                CommentDto.builder().id(notDeletedComment.getId()).text(notDeletedComment.getText()).build()
+            );
+
+            CommentDto result = commentService.restoreCommentByAdmin(notDeletedComment.getId());
+
+            assertNotNull(result);
+            assertEquals(notDeletedComment.getText(), result.getText());
+            verify(commentRepository).findById(notDeletedComment.getId());
+            verify(commentRepository, never()).save(any(Comment.class));
+            verify(commentMapper).toDto(notDeletedComment);
+        }
+
+        @Test
+        @DisplayName("Должен выбросить EntityNotFoundException, если комментарий для восстановления не найден")
+        void restoreCommentByAdmin_whenCommentNotFound_shouldThrowEntityNotFoundException() {
+            when(commentRepository.findById(commentId)).thenReturn(Optional.empty());
+
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
+                () -> commentService.restoreCommentByAdmin(commentId));
+            assertTrue(ex.getMessage().contains("Comment with id=" + commentId + " not found"));
+        }
+    }
+
+ */
+
+    @Nested
+    @DisplayName("Метод getAllCommentsAdmin")
+    class GetAllCommentsAdminServiceTests {
+        private Pageable defaultPageable;
+
+        @BeforeEach
+        void setUpAdminSearch() {
+            defaultPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdOn"));
+        }
+
+        @Test
+        @DisplayName("Должен вызывать commentRepository.findAll с предикатом и пагинацией")
+        void getAllCommentsAdmin_withFilters_shouldCallRepositoryWithPredicate() {
+            AdminCommentSearchParams params = AdminCommentSearchParams.builder()
+                .userId(1L)
+                .eventId(2L)
+                .isDeleted(false)
+                .build();
+            Page<Comment> emptyPage = new PageImpl<>(Collections.emptyList(), defaultPageable, 0);
+            when(commentRepository.findAll(any(Predicate.class), eq(defaultPageable))).thenReturn(emptyPage);
+
+            commentService.getAllCommentsAdmin(params, 0, 10);
+
+            verify(commentRepository).findAll(predicateCaptor.capture(), eq(defaultPageable));
+            Predicate capturedPredicate = predicateCaptor.getValue();
+            assertNotNull(capturedPredicate);
+            String predicateStr = capturedPredicate.toString();
+            assertTrue(predicateStr.contains("comment.author.id = 1"));
+            assertTrue(predicateStr.contains("comment.event.id = 2"));
+            assertTrue(predicateStr.contains("comment.isDeleted = false"));
+        }
+
+        @Test
+        @DisplayName("Должен вызывать commentRepository.findAll с пагинацией, если фильтры не заданы")
+        void getAllCommentsAdmin_noFilters_shouldCallRepositoryWithoutPredicateParts() {
+            AdminCommentSearchParams params = AdminCommentSearchParams.builder().build();
+            Page<Comment> emptyPage = new PageImpl<>(Collections.emptyList(), defaultPageable, 0);
+            when(commentRepository.findAll(any(Predicate.class), eq(defaultPageable))).thenReturn(emptyPage);
+
+            commentService.getAllCommentsAdmin(params, 0, 10);
+
+            verify(commentRepository).findAll(predicateCaptor.capture(), eq(defaultPageable));
+            Predicate capturedPredicate = predicateCaptor.getValue();
+            assertNotNull(capturedPredicate);
+        }
+
+        @Test
+        @DisplayName("getAllCommentsAdmin БЕЗ ФИЛЬТРОВ: должен вызывать commentRepository.findAll(Pageable)")
+        void getAllCommentsAdmin_noFiltersAtAll_shouldCallRepositoryFindAllWithPageable() {
+            AdminCommentSearchParams params = AdminCommentSearchParams.builder().build();
+            Page<Comment> emptyPage = new PageImpl<>(Collections.emptyList(), defaultPageable, 0);
+
+            when(commentRepository.findAll(any(Predicate.class), eq(defaultPageable))).thenReturn(emptyPage);
+
+            commentService.getAllCommentsAdmin(params, 0, 10);
+
+            verify(commentRepository, times(1)).findAll(predicateCaptor.capture(), eq(defaultPageable));
+            Predicate capturedPredicate = predicateCaptor.getValue();
+            assertEquals(new BooleanBuilder(), capturedPredicate); // Проверяем, что предикат был пустым.
+        }
+
+
+        @Test
+        @DisplayName("Должен возвращать пустой список, если репозиторий вернул пустую страницу")
+        void getAllCommentsAdmin_whenRepositoryReturnsEmptyPage_shouldReturnEmptyList() {
+            AdminCommentSearchParams params = AdminCommentSearchParams.builder().userId(1L).build();
+            Page<Comment> emptyPage = new PageImpl<>(Collections.emptyList(), defaultPageable, 0);
+            when(commentRepository.findAll(any(Predicate.class), eq(defaultPageable))).thenReturn(emptyPage);
+
+            List<CommentDto> result = commentService.getAllCommentsAdmin(params, 0, 10);
+
+            assertTrue(result.isEmpty());
         }
     }
 }
