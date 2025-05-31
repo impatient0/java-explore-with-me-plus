@@ -71,7 +71,7 @@ public class PrivateCommentControllerTest {
 
     @Nested
     @DisplayName("Набор тестов для метода createComment")
-    class createComment {
+    class CreateComment {
 
         @Test
         void createComment_whenValidInput_thenReturnsCreatedComment() throws Exception {
@@ -121,7 +121,7 @@ public class PrivateCommentControllerTest {
 
     @Nested
     @DisplayName("Набор тестов для метода updateComment")
-    class updateComment {
+    class UpdateComment {
 
         @Test
         void updateComment_shouldReturnUpdatedComment_whenInputIsValid() throws Exception {

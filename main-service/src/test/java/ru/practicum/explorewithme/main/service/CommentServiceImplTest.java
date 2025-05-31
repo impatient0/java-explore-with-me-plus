@@ -69,7 +69,7 @@ class CommentServiceImplTest {
 
     @Nested
     @DisplayName("Набор тестов для метода addComment")
-    class addComment {
+    class AddComment {
 
         @Test
         void addComment_success() {
@@ -138,7 +138,7 @@ class CommentServiceImplTest {
 
     @Nested
     @DisplayName("Набор тестов для метода updateUserComment")
-    class updateUserComment {
+    class UpdateUserComment {
 
         @Test
         void updateUserComment_shouldUpdateCommentAndReturnDto() {
