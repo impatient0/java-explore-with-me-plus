@@ -155,13 +155,13 @@ class CommentServiceImplTest {
 
             when(commentRepository.findById(commentId)).thenReturn(Optional.of(comment));
             when(commentMapper.toDto(any(Comment.class))).thenReturn(expectedDto);
-            when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(commentRepository.saveAndFlush(any(Comment.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             CommentDto result = commentService.updateUserComment(userId, commentId, updateCommentDto);
 
             Assertions.assertEquals("Updated text", result.getText());
             Assertions.assertTrue(comment.isEdited());
-            verify(commentRepository).save(comment);
+            verify(commentRepository).saveAndFlush(comment);
         }
 
         @Test
