@@ -11,6 +11,8 @@ public interface CommentService {
 
     List<CommentDto> getCommentsForEvent(Long eventId, PublicCommentParameters commentParameters);
 
+    List<CommentDto> getUserComments(Long userId, int from, int size);
+
     CommentDto addComment(Long userId, Long eventId, NewCommentDto newCommentDto);
 
     CommentDto updateUserComment(Long userId, Long commentId, UpdateCommentDto updateCommentDto);

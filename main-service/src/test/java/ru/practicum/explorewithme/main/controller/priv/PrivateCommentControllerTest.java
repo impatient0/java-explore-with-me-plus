@@ -17,14 +17,13 @@ import ru.practicum.explorewithme.main.dto.UserShortDto;
 import ru.practicum.explorewithme.main.service.CommentService;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post; // <-- для post-запроса
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 
 @WebMvcTest(PrivateCommentController.class)
@@ -212,5 +211,61 @@ public class PrivateCommentControllerTest {
                     .andExpect(jsonPath("$.errors[0]").exists())
                     .andExpect(jsonPath("$.errors[0]").value("text: Comment text cannot be blank."));
         }
+    }
+
+    @Nested
+    @DisplayName("Набор тестов для метода getUserComments")
+    class GetUserComments {
+
+        @Test
+        void getUserCommentsReturnsCommentsListWithStatusOk() throws Exception {
+
+            List<CommentDto> comments = List.of(commentDto);
+
+            when(commentService.getUserComments(userId, 0, 10)).thenReturn(comments);
+
+            mockMvc.perform(get("/users/{userId}/comments", userId)
+                            .param("from", "0")
+                            .param("size", "10")
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(content().json(objectMapper.writeValueAsString(comments)));
+
+            verify(commentService, times(1)).getUserComments(userId, 0, 10);
+        }
+
+        @Test
+        void getUserCommentsReturnsEmptyListWhenNoComments() throws Exception {
+
+            when(commentService.getUserComments(userId, 0, 10)).thenReturn(List.of());
+
+            mockMvc.perform(get("/users/{userId}/comments", userId)
+                            .param("from", "0")
+                            .param("size", "10")
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(content().json("[]"));
+        }
+
+        @Test
+        void getUserCommentsReturnsBadRequestWhenFromIsNegative() throws Exception {
+
+            mockMvc.perform(get("/users/{userId}/comments", userId)
+                            .param("from", "-1")
+                            .param("size", "10")
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void getUserCommentsReturnsBadRequestWhenSizeIsZero() throws Exception {
+
+            mockMvc.perform(get("/users/{userId}/comments", userId)
+                            .param("from", "0")
+                            .param("size", "0")
+                            .accept(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isBadRequest());
+        }
+
     }
 }

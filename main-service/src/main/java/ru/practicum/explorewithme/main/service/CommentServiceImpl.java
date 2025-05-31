@@ -53,6 +53,20 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<CommentDto> getUserComments(Long userId, int from, int size) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь с id " + userId + " не найден"));
+
+        Pageable pageable = PageRequest.of(from / size, size);
+
+        List<Comment> result = commentRepository.findByAuthorIdAndIsDeletedFalse(userId, pageable).getContent();
+
+        return commentMapper.toDtoList(result);
+    }
+
+    @Override
     @Transactional
     public CommentDto addComment(Long userId, Long eventId, NewCommentDto newCommentDto) {
 

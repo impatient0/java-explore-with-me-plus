@@ -5,6 +5,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import ru.practicum.explorewithme.main.dto.CommentDto;
 import ru.practicum.explorewithme.main.dto.NewCommentDto;
 import ru.practicum.explorewithme.main.dto.UpdateCommentDto;
@@ -20,8 +22,10 @@ import ru.practicum.explorewithme.main.repository.EventRepository;
 import ru.practicum.explorewithme.main.repository.UserRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -214,6 +218,64 @@ class CommentServiceImplTest {
                     () -> commentService.updateUserComment(userId, commentId, dto)
             );
             Assertions.assertTrue(ex.getMessage().contains("Время для редактирования истекло"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Набор тестов для метода getUserComments")
+    class GetUserComments {
+
+        @Test
+        void getUserComments_shouldReturnEmptyList_whenNoComments() {
+
+            when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
+            when(commentRepository.findByAuthorIdAndIsDeletedFalse(eq(userId), any(Pageable.class)))
+                    .thenReturn(new PageImpl<>(List.of()));
+            when(commentMapper.toDtoList(List.of())).thenReturn(List.of());
+
+            List<CommentDto> result = commentService.getUserComments(userId, 0, 10);
+
+            assertThat(result).isEmpty();
+
+            verify(userRepository).findById(userId);
+            verify(commentRepository).findByAuthorIdAndIsDeletedFalse(eq(userId), any(Pageable.class));
+            verify(commentMapper).toDtoList(List.of());
+        }
+
+        @Test
+        void getUserComments_shouldReturnCommentsDtoList_whenCommentsExist() {
+
+            List<Comment> comments = List.of(comment);
+            CommentDto commentDto = new CommentDto(); // настрой по необходимости
+            List<CommentDto> commentDtos = List.of(commentDto);
+
+            when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
+            when(commentRepository.findByAuthorIdAndIsDeletedFalse(eq(userId), any(Pageable.class)))
+                    .thenReturn(new PageImpl<>(comments));
+            when(commentMapper.toDtoList(comments)).thenReturn(commentDtos);
+
+            List<CommentDto> result = commentService.getUserComments(userId, 0, 10);
+
+            assertThat(result).isEqualTo(commentDtos);
+
+            verify(userRepository).findById(userId);
+            verify(commentRepository).findByAuthorIdAndIsDeletedFalse(eq(userId), any(Pageable.class));
+            verify(commentMapper).toDtoList(comments);
+        }
+
+        @Test
+        void getUserComments_shouldThrowException_whenUserNotFound() {
+
+            when(userRepository.findById(userId)).thenReturn(java.util.Optional.empty());
+
+            EntityNotFoundException exception = assertThrows(
+                    EntityNotFoundException.class,
+                    () -> commentService.getUserComments(userId, 0, 10)
+            );
+
+            assertThat(exception.getMessage()).contains("Пользователь с id " + userId + " не найден");
+            verify(userRepository).findById(userId);
+            verifyNoInteractions(commentRepository, commentMapper);
         }
     }
 }

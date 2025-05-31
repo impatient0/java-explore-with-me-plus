@@ -12,4 +12,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @EntityGraph(attributePaths = {"author"})
     Page<Comment> findByEventIdAndIsDeletedFalse(Long eventId, Pageable pageable);
 
+    Page<Comment> findByAuthorIdAndIsDeletedFalse(Long authorId, Pageable pageable);
+
 }
