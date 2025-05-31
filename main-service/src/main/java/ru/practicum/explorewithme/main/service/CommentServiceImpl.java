@@ -122,6 +122,6 @@ public class CommentServiceImpl implements CommentService {
         existedComment.setText(updateCommentDto.getText());
         existedComment.setEdited(true);
 
-        return commentMapper.toDto(commentRepository.save(existedComment));
+        return commentMapper.toDto(commentRepository.saveAndFlush(existedComment));
     }
 }
