@@ -1,7 +1,6 @@
 package ru.practicum.explorewithme.main.service;
 
 import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.types.Predicate;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -190,8 +189,7 @@ public class CommentServiceImpl implements CommentService {
 
         Pageable pageable = PageRequest.of(from / size, size, Sort.by(Sort.Direction.DESC, "createdOn"));
 
-        Predicate finalPredicate = predicate.getValue();
-        Page<Comment> commentPage = commentRepository.findAll(finalPredicate, pageable);
+        Page<Comment> commentPage = commentRepository.findAll(predicate, pageable);
 
         if (commentPage.isEmpty()) {
             return Collections.emptyList();
