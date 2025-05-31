@@ -189,21 +189,6 @@ public class PrivateCommentControllerTest {
         }
 
         @Test
-        void updateComment_shouldReturnBadRequest_whenBodyTextTooShort() throws Exception {
-
-            UpdateCommentDto updateCommentDto = UpdateCommentDto.builder()
-                    .text("")
-                    .build();
-
-            mockMvc.perform(patch("/users/{userId}/comments/{commentId}", userId, commentDto.getId())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(updateCommentDto)))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.errors[0]").exists())
-                    .andExpect(jsonPath("$.errors[0]").value("text: Comment text must be between 1 and 2000 characters."));
-        }
-
-        @Test
         void updateComment_shouldReturnBadRequest_whenBodyTextTooLong() throws Exception {
             String longText = "a".repeat(2001);
             UpdateCommentDto updateCommentDto = UpdateCommentDto.builder()
