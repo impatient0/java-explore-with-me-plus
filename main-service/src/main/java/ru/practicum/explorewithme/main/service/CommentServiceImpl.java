@@ -191,10 +191,6 @@ public class CommentServiceImpl implements CommentService {
 
         Page<Comment> commentPage = commentRepository.findAll(predicate, pageable);
 
-        if (commentPage.isEmpty()) {
-            return Collections.emptyList();
-        }
-
         List<CommentDto> result = commentMapper.toDtoList(commentPage.getContent());
         log.debug("Admin: Found {} comments for the given criteria.", result.size());
         return result;
