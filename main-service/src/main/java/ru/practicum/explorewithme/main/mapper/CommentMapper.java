@@ -3,6 +3,7 @@ package ru.practicum.explorewithme.main.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
+import ru.practicum.explorewithme.main.dto.CommentAdminDto; // <<< Новый импорт
 import ru.practicum.explorewithme.main.dto.CommentDto;
 import ru.practicum.explorewithme.main.dto.NewCommentDto;
 import ru.practicum.explorewithme.main.model.Comment;
@@ -30,8 +31,9 @@ public interface CommentMapper {
 
 
     /**
-     * Маппинг из сущности Comment в CommentDto.
+     * Маппинг из сущности Comment в CommentDto (для публичного/пользовательского API).
      * Поле eventId извлекается из comment.getEvent().getId().
+     * Поле isDeleted не включается.
      */
     @Mappings({
         @Mapping(source = "event.id", target = "eventId"),
@@ -40,5 +42,18 @@ public interface CommentMapper {
     CommentDto toDto(Comment comment);
 
     List<CommentDto> toDtoList(List<Comment> comments);
+
+    /**
+     * Маппинг из сущности Comment в CommentAdminDto (для административного API).
+     * Включает поле isDeleted.
+     */
+    @Mappings({
+        @Mapping(source = "event.id", target = "eventId"),
+        @Mapping(source = "edited", target = "isEdited"),
+        @Mapping(source = "deleted", target = "isDeleted")
+    })
+    CommentAdminDto toAdminDto(Comment comment);
+
+    List<CommentAdminDto> toAdminDtoList(List<Comment> comments);
 
 }
