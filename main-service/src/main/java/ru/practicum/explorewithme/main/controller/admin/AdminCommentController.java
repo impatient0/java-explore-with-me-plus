@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import ru.practicum.explorewithme.main.dto.CommentDto;
+import ru.practicum.explorewithme.main.dto.CommentAdminDto;
 import ru.practicum.explorewithme.main.service.CommentService;
 import ru.practicum.explorewithme.main.service.params.AdminCommentSearchParams;
 
@@ -38,9 +38,9 @@ public class AdminCommentController {
 
     @PatchMapping("/{commentId}/restore")
     @ResponseStatus(HttpStatus.OK)
-    public CommentDto restoreComment(@PathVariable @Positive Long commentId) {
+    public CommentAdminDto restoreComment(@PathVariable @Positive Long commentId) {
         log.info("Admin: Received request to restore comment with Id: {}", commentId);
-        CommentDto restoredComment = commentService.restoreCommentByAdmin(commentId);
+        CommentAdminDto restoredComment = commentService.restoreCommentByAdmin(commentId);
         log.info("Admin: Comment with Id: {} restored", commentId);
         return restoredComment;
     }
@@ -57,7 +57,7 @@ public class AdminCommentController {
      */
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<CommentDto> getAllCommentsAdmin(
+    public List<CommentAdminDto> getAllCommentsAdmin(
         @RequestParam(name = "userId", required = false) @Positive Long userId,
         @RequestParam(name = "eventId", required = false) @Positive Long eventId,
         @RequestParam(name = "isDeleted", required = false) Boolean isDeleted,
@@ -73,7 +73,7 @@ public class AdminCommentController {
             .isDeleted(isDeleted)
             .build();
 
-        List<CommentDto> comments = commentService.getAllCommentsAdmin(searchParams, from, size);
+        List<CommentAdminDto> comments = commentService.getAllCommentsAdmin(searchParams, from, size);
 
         log.info("Admin: Found {} comments matching criteria.", comments.size());
         return comments;
