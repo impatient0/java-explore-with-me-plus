@@ -1,5 +1,6 @@
 package ru.practicum.explorewithme.main.service;
 
+import ru.practicum.explorewithme.main.dto.CommentAdminDto;
 import ru.practicum.explorewithme.main.dto.CommentDto;
 import ru.practicum.explorewithme.main.dto.NewCommentDto;
 import ru.practicum.explorewithme.main.dto.UpdateCommentDto;
@@ -22,7 +23,7 @@ public interface CommentService {
 
     void deleteUserComment(Long userId, Long commentId);
 
-    CommentDto restoreCommentByAdmin(Long commentId);
+    CommentAdminDto restoreCommentByAdmin(Long commentId);
 
-    List<CommentDto> getAllCommentsAdmin(AdminCommentSearchParams searchParams, int from, int size);
+    List<CommentAdminDto> getAllCommentsAdmin(AdminCommentSearchParams searchParams, int from, int size);
 }

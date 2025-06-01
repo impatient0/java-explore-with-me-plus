@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.explorewithme.main.dto.CommentAdminDto;
 import ru.practicum.explorewithme.main.dto.CommentDto;
 import ru.practicum.explorewithme.main.dto.NewCommentDto;
 import ru.practicum.explorewithme.main.dto.UpdateCommentDto;
@@ -152,19 +153,19 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     @Transactional
-    public CommentDto restoreCommentByAdmin(Long commentId) {
+    public CommentAdminDto restoreCommentByAdmin(Long commentId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException(String.format("Comment with id=%d not found", commentId)));
         if (comment.isDeleted()) {
             comment.setDeleted(false);
             commentRepository.save(comment);
         }
-        return commentMapper.toDto(comment);
+        return commentMapper.toAdminDto(comment);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CommentDto> getAllCommentsAdmin(AdminCommentSearchParams searchParams, int from, int size) {
+    public List<CommentAdminDto> getAllCommentsAdmin(AdminCommentSearchParams searchParams, int from, int size) {
         log.debug("Admin: Searching all comments with params: {}, from={}, size={}", searchParams, from, size);
 
         QComment qComment = QComment.comment;
@@ -186,7 +187,7 @@ public class CommentServiceImpl implements CommentService {
 
         Page<Comment> commentPage = commentRepository.findAll(predicate, pageable);
 
-        List<CommentDto> result = commentMapper.toDtoList(commentPage.getContent());
+        List<CommentAdminDto> result = commentMapper.toAdminDtoList(commentPage.getContent());
         log.debug("Admin: Found {} comments for the given criteria.", result.size());
         return result;
     }
