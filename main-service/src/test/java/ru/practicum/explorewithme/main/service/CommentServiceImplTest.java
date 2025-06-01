@@ -555,6 +555,7 @@ class CommentServiceImplTest {
 
             List<CommentDto> result = commentService.getAllCommentsAdmin(params, 0, 10);
 
+            verify(commentMapper, times(1)).toDtoList(Collections.emptyList());
             assertTrue(result.isEmpty());
         }
     }
