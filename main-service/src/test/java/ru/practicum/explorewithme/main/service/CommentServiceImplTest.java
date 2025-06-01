@@ -2,11 +2,13 @@ package ru.practicum.explorewithme.main.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -64,9 +66,8 @@ class CommentServiceImplTest {
     @InjectMocks
     private CommentServiceImpl commentService;
 
-    // пока не нужен, но пригодится для тестов Лериных методов
     @Captor
-    private ArgumentCaptor<Comment> commentArgumentCaptor;
+    private ArgumentCaptor<Comment> commentCaptor;
     @Captor
     private ArgumentCaptor<Predicate> predicateCaptor;
 
@@ -305,9 +306,6 @@ class CommentServiceImplTest {
         }
     }
 
-/*
-    тесты для методов из Лериного PR
-
     @Nested
     @DisplayName("Метод deleteCommentByAdmin")
     class DeleteCommentByAdminTests {
@@ -363,7 +361,7 @@ class CommentServiceImplTest {
     @DisplayName("Метод deleteUserComment")
     class DeleteUserCommentTests {
         private Comment userComment;
-        private Long nonAuthorUserId = 999L;
+        private final Long nonAuthorUserId = 999L;
 
         @BeforeEach
         void setUpDeleteUser() {
@@ -392,10 +390,9 @@ class CommentServiceImplTest {
         void deleteUserComment_whenUserIsNotAuthor_shouldThrowException() {
             when(commentRepository.findById(commentId)).thenReturn(Optional.of(userComment));
 
-            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class, () -> {
-                commentService.deleteUserComment(nonAuthorUserId, commentId);
-            });
-            assertTrue(ex.getMessage().contains("is not the author"));
+            EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
+                () -> commentService.deleteUserComment(nonAuthorUserId, commentId));
+            assertTrue(ex.getMessage().contains("not found for user"));
 
             verify(commentRepository).findById(commentId);
             verify(commentRepository, never()).save(any(Comment.class));
@@ -491,8 +488,6 @@ class CommentServiceImplTest {
             assertTrue(ex.getMessage().contains("Comment with id=" + commentId + " not found"));
         }
     }
-
- */
 
     @Nested
     @DisplayName("Метод getAllCommentsAdmin")
