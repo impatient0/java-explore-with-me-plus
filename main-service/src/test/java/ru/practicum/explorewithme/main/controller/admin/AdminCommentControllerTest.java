@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested; // Добавлен импорт Nested
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -27,7 +27,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import ru.practicum.explorewithme.main.dto.CommentDto;
+import ru.practicum.explorewithme.main.dto.CommentAdminDto;
 import ru.practicum.explorewithme.main.dto.UserShortDto;
 import ru.practicum.explorewithme.main.service.CommentService;
 import ru.practicum.explorewithme.main.service.params.AdminCommentSearchParams;
@@ -77,9 +77,9 @@ class AdminCommentControllerTest {
         @DisplayName("Должен вернуть 200 OK и список CommentDto, если комментарии найдены")
         void whenCommentsFound_shouldReturnOkAndDtoList() throws Exception {
             UserShortDto author = UserShortDto.builder().id(1L).name("Test Author").build();
-            CommentDto comment1 = CommentDto.builder().id(1L).text("Comment 1").author(author).eventId(100L).createdOn(LocalDateTime.now()).build();
-            CommentDto comment2 = CommentDto.builder().id(2L).text("Comment 2").author(author).eventId(101L).createdOn(LocalDateTime.now()).build();
-            List<CommentDto> comments = List.of(comment1, comment2);
+            CommentAdminDto comment1 = CommentAdminDto.builder().id(1L).text("Comment 1").author(author).eventId(100L).createdOn(LocalDateTime.now()).build();
+            CommentAdminDto comment2 = CommentAdminDto.builder().id(2L).text("Comment 2").author(author).eventId(101L).createdOn(LocalDateTime.now()).build();
+            List<CommentAdminDto> comments = List.of(comment1, comment2);
 
             when(commentService.getAllCommentsAdmin(any(AdminCommentSearchParams.class), eq(0), eq(10)))
                 .thenReturn(comments);

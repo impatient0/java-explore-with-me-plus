@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import ru.practicum.explorewithme.main.dto.CommentAdminDto;
 import ru.practicum.explorewithme.main.dto.CommentDto;
 import ru.practicum.explorewithme.main.error.EntityNotFoundException;
 import ru.practicum.explorewithme.main.model.Category;
@@ -246,8 +247,8 @@ class CommentServiceIntegrationTest {
         void getAllCommentsAdmin_noFilters_shouldReturnAllCommentsPaged() {
             AdminCommentSearchParams params = AdminCommentSearchParams.builder().build();
 
-            List<CommentDto> resultsPage1 = commentService.getAllCommentsAdmin(params, 0, 2);
-            List<CommentDto> resultsPage2 = commentService.getAllCommentsAdmin(params, 2, 2);
+            List<CommentAdminDto> resultsPage1 = commentService.getAllCommentsAdmin(params, 0, 2);
+            List<CommentAdminDto> resultsPage2 = commentService.getAllCommentsAdmin(params, 2, 2);
 
             assertAll(
                 () -> assertThat(resultsPage1)
@@ -281,7 +282,7 @@ class CommentServiceIntegrationTest {
         void getAllCommentsAdmin_withUserIdFilter_shouldReturnUserComments() {
             AdminCommentSearchParams params = AdminCommentSearchParams.builder()
                 .userId(user1.getId()).build();
-            List<CommentDto> results = commentService.getAllCommentsAdmin(params, 0, 10);
+            List<CommentAdminDto> results = commentService.getAllCommentsAdmin(params, 0, 10);
 
             assertAll(
                 () -> assertThat(results)
@@ -294,11 +295,11 @@ class CommentServiceIntegrationTest {
                             .isEqualTo(user1.getId())),
                 () -> assertThat(results)
                     .as("Комментарий 1 для user1 (ID: %s) должен присутствовать", comment1User1Event1.getId())
-                    .extracting(CommentDto::getId)
+                    .extracting(CommentAdminDto::getId)
                     .contains(comment1User1Event1.getId()),
                 () -> assertThat(results)
                     .as("Комментарий 2 для user1 (удален) (ID: %s) должен присутствовать", comment3User1Event1Deleted.getId())
-                    .extracting(CommentDto::getId)
+                    .extracting(CommentAdminDto::getId)
                     .contains(comment3User1Event1Deleted.getId())
             );
         }
@@ -308,7 +309,7 @@ class CommentServiceIntegrationTest {
         void getAllCommentsAdmin_withEventIdFilter_shouldReturnEventComments() {
             AdminCommentSearchParams params = AdminCommentSearchParams.builder()
                 .eventId(event1.getId()).build();
-            List<CommentDto> results = commentService.getAllCommentsAdmin(params, 0, 10);
+            List<CommentAdminDto> results = commentService.getAllCommentsAdmin(params, 0, 10);
 
             assertAll(
                 () -> assertThat(results)
@@ -327,7 +328,7 @@ class CommentServiceIntegrationTest {
         void getAllCommentsAdmin_withIsDeletedFalse_shouldReturnNotDeletedComments() {
             AdminCommentSearchParams params = AdminCommentSearchParams.builder().isDeleted(false)
                 .build();
-            List<CommentDto> results = commentService.getAllCommentsAdmin(params, 0, 10);
+            List<CommentAdminDto> results = commentService.getAllCommentsAdmin(params, 0, 10);
 
             assertAll(
                 () -> assertThat(results)
@@ -335,19 +336,19 @@ class CommentServiceIntegrationTest {
                     .hasSize(3),
                 () -> assertThat(results)
                     .as("Удаленный комментарий (comment2 ID: %s) НЕ должен присутствовать в результатах", comment3User1Event1Deleted.getId())
-                    .extracting(CommentDto::getId)
+                    .extracting(CommentAdminDto::getId)
                     .doesNotContain(comment3User1Event1Deleted.getId()),
                 () -> assertThat(results)
                     .as("Комментарий1 (ID: %s) должен присутствовать в результатах", comment1User1Event1.getId())
-                    .extracting(CommentDto::getId)
+                    .extracting(CommentAdminDto::getId)
                     .contains(comment1User1Event1.getId()),
                 () -> assertThat(results)
                     .as("Комментарий3 (ID: %s) должен присутствовать в результатах", comment2User2Event1.getId())
-                    .extracting(CommentDto::getId)
+                    .extracting(CommentAdminDto::getId)
                     .contains(comment2User2Event1.getId()),
                 () -> assertThat(results)
                     .as("Комментарий4 (ID: %s) должен присутствовать в результатах", comment4User2Event2.getId())
-                    .extracting(CommentDto::getId)
+                    .extracting(CommentAdminDto::getId)
                     .contains(comment4User2Event2.getId()),
                 () -> assertThat(results)
                     .as("Все полученные экземпляры CommentDto должны иметь ненулевой ID типа Long")
@@ -369,7 +370,7 @@ class CommentServiceIntegrationTest {
         void getAllCommentsAdmin_withIsDeletedTrue_shouldReturnDeletedComments() {
             AdminCommentSearchParams params = AdminCommentSearchParams.builder().isDeleted(true)
                 .build();
-            List<CommentDto> results = commentService.getAllCommentsAdmin(params, 0, 10);
+            List<CommentAdminDto> results = commentService.getAllCommentsAdmin(params, 0, 10);
 
             assertAll(
                 () -> assertThat(results)
@@ -380,7 +381,7 @@ class CommentServiceIntegrationTest {
                     .hasFieldOrPropertyWithValue("id", comment3User1Event1Deleted.getId())
             );
 
-            CommentDto resultDto = results.getFirst();
+            CommentAdminDto resultDto = results.getFirst();
             assertThat(findCommentInDb(resultDto.getId()).isDeleted())
                 .as("Комментарий %s (проверка БД) должен быть помечен как удаленный", resultDto.getId())
                 .isTrue();
@@ -391,14 +392,14 @@ class CommentServiceIntegrationTest {
         void getAllCommentsAdmin_withCombinedFilters_shouldReturnMatchingComments() {
             AdminCommentSearchParams params = AdminCommentSearchParams.builder()
                 .userId(user1.getId()).eventId(event1.getId()).isDeleted(false).build();
-            List<CommentDto> results = commentService.getAllCommentsAdmin(params, 0, 10);
+            List<CommentAdminDto> results = commentService.getAllCommentsAdmin(params, 0, 10);
 
             assertAll(
                 () -> assertThat(results)
                     .as("Должен вернуть ровно 1 комментарий по заданным фильтрам")
                     .hasSize(1),
                 () -> {
-                    CommentDto resultDto = results.getFirst();
+                    CommentAdminDto resultDto = results.getFirst();
                     assertThat(resultDto)
                         .as("Возвращенный комментарий (ID: %s) должен соответствовать comment1User1Event1", resultDto.getId())
                         .hasFieldOrPropertyWithValue("id", comment1User1Event1.getId())
@@ -410,7 +411,7 @@ class CommentServiceIntegrationTest {
                 }
             );
 
-            CommentDto resultDtoForDbCheck = results.getFirst();
+            CommentAdminDto resultDtoForDbCheck = results.getFirst();
             assertThat(findCommentInDb(resultDtoForDbCheck.getId()).isDeleted())
                 .as("Комментарий %s (проверка БД) не должен быть помечен как удаленный", resultDtoForDbCheck.getId())
                 .isFalse();
@@ -421,7 +422,7 @@ class CommentServiceIntegrationTest {
         void getAllCommentsAdmin_whenNoMatch_shouldReturnEmptyList() {
             AdminCommentSearchParams params = AdminCommentSearchParams.builder().userId(999L)
                 .build();
-            List<CommentDto> results = commentService.getAllCommentsAdmin(params, 0, 10);
+            List<CommentAdminDto> results = commentService.getAllCommentsAdmin(params, 0, 10);
 
             assertThat(results).isEmpty();
         }

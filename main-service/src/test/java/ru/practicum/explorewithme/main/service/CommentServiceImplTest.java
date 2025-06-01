@@ -36,6 +36,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import ru.practicum.explorewithme.main.dto.CommentAdminDto;
 import ru.practicum.explorewithme.main.dto.CommentDto;
 import ru.practicum.explorewithme.main.dto.NewCommentDto;
 import ru.practicum.explorewithme.main.dto.UpdateCommentDto;
@@ -426,7 +427,7 @@ class CommentServiceImplTest {
     class RestoreCommentByAdminTests {
         private Comment deletedComment;
         private Comment notDeletedComment;
-        private CommentDto mappedDto;
+        private CommentAdminDto mappedDto;
 
         @BeforeEach
         void setUpRestore() {
@@ -440,7 +441,7 @@ class CommentServiceImplTest {
             notDeletedComment.setDeleted(false);
             notDeletedComment.setText("Another text");
 
-            mappedDto = CommentDto.builder().id(commentId).text("Some text").isEdited(false).build();
+            mappedDto = CommentAdminDto.builder().id(commentId).text("Some text").isEdited(false).build();
         }
 
         @Test
@@ -448,9 +449,9 @@ class CommentServiceImplTest {
         void restoreCommentByAdmin_whenCommentIsDeleted_shouldRestoreAndReturnDto() {
             when(commentRepository.findById(commentId)).thenReturn(Optional.of(deletedComment));
             when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(commentMapper.toDto(any(Comment.class))).thenReturn(mappedDto);
+            when(commentMapper.toAdminDto(any(Comment.class))).thenReturn(mappedDto);
 
-            CommentDto result = commentService.restoreCommentByAdmin(commentId);
+            CommentAdminDto result = commentService.restoreCommentByAdmin(commentId);
 
             assertNotNull(result);
             assertEquals(mappedDto.getText(), result.getText());
@@ -458,24 +459,24 @@ class CommentServiceImplTest {
             verify(commentRepository).save(commentCaptor.capture());
             Comment savedComment = commentCaptor.getValue();
             assertFalse(savedComment.isDeleted());
-            verify(commentMapper).toDto(savedComment);
+            verify(commentMapper).toAdminDto(savedComment);
         }
 
         @Test
         @DisplayName("Должен возвращать DTO без изменений, если комментарий не был удален")
         void restoreCommentByAdmin_whenCommentIsNotDeleted_shouldReturnDtoWithoutSaving() {
             when(commentRepository.findById(notDeletedComment.getId())).thenReturn(Optional.of(notDeletedComment));
-            when(commentMapper.toDto(notDeletedComment)).thenReturn(
-                CommentDto.builder().id(notDeletedComment.getId()).text(notDeletedComment.getText()).build()
+            when(commentMapper.toAdminDto(notDeletedComment)).thenReturn(
+                CommentAdminDto.builder().id(notDeletedComment.getId()).text(notDeletedComment.getText()).build()
             );
 
-            CommentDto result = commentService.restoreCommentByAdmin(notDeletedComment.getId());
+            CommentAdminDto result = commentService.restoreCommentByAdmin(notDeletedComment.getId());
 
             assertNotNull(result);
             assertEquals(notDeletedComment.getText(), result.getText());
             verify(commentRepository).findById(notDeletedComment.getId());
             verify(commentRepository, never()).save(any(Comment.class));
-            verify(commentMapper).toDto(notDeletedComment);
+            verify(commentMapper).toAdminDto(notDeletedComment);
         }
 
         @Test
@@ -558,9 +559,9 @@ class CommentServiceImplTest {
             Page<Comment> emptyPage = new PageImpl<>(Collections.emptyList(), defaultPageable, 0);
             when(commentRepository.findAll(any(Predicate.class), eq(defaultPageable))).thenReturn(emptyPage);
 
-            List<CommentDto> result = commentService.getAllCommentsAdmin(params, 0, 10);
+            List<CommentAdminDto> result = commentService.getAllCommentsAdmin(params, 0, 10);
 
-            verify(commentMapper, times(1)).toDtoList(Collections.emptyList());
+            verify(commentMapper, times(1)).toAdminDtoList(Collections.emptyList());
             assertTrue(result.isEmpty());
         }
     }
