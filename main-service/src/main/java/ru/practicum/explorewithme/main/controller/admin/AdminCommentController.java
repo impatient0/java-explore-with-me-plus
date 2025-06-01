@@ -58,8 +58,8 @@ public class AdminCommentController {
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public List<CommentDto> getAllCommentsAdmin(
-        @RequestParam(name = "userId", required = false) Long userId,
-        @RequestParam(name = "eventId", required = false) Long eventId,
+        @RequestParam(name = "userId", required = false) @Positive Long userId,
+        @RequestParam(name = "eventId", required = false) @Positive Long eventId,
         @RequestParam(name = "isDeleted", required = false) Boolean isDeleted,
         @RequestParam(name = "from", defaultValue = "0") @PositiveOrZero int from,
         @RequestParam(name = "size", defaultValue = "10") @Positive int size) {
