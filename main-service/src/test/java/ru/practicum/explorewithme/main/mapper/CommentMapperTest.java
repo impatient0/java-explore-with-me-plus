@@ -7,8 +7,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import ru.practicum.explorewithme.main.dto.CommentAdminDto;
 import ru.practicum.explorewithme.main.dto.CommentDto;
 import ru.practicum.explorewithme.main.dto.NewCommentDto;
+import ru.practicum.explorewithme.main.model.Category;
 import ru.practicum.explorewithme.main.model.Comment;
 import ru.practicum.explorewithme.main.model.Event;
 import ru.practicum.explorewithme.main.model.User;
@@ -202,6 +204,67 @@ class CommentMapperTest {
 
             assertNotNull(dtoList);
             assertTrue(dtoList.isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("Метод toAdminDto (маппинг Comment -> CommentAdminDto)")
+    class ToAdminDtoTests {
+
+        @Test
+        @DisplayName("Должен корректно маппить все поля, включая isDeleted")
+        void toAdminDto_shouldMapAllFieldsIncludingIsDeleted() {
+            User authorModel = User.builder().id(1L).name("Admin Test Author").build();
+            Category categoryModel = Category.builder().id(1L).name("Admin Test Category").build();
+            Event eventModel = Event.builder().id(1L).category(categoryModel).initiator(authorModel).build();
+
+
+            Comment comment = Comment.builder()
+                .id(1L)
+                .text("Admin DTO test comment")
+                .author(authorModel)
+                .event(eventModel)
+                .createdOn(LocalDateTime.now().minusHours(1))
+                .updatedOn(LocalDateTime.now())
+                .isEdited(true)
+                .isDeleted(true)
+                .build();
+
+            CommentAdminDto dto = commentMapper.toAdminDto(comment);
+
+            assertNotNull(dto);
+            assertEquals(comment.getId(), dto.getId());
+            assertEquals(comment.getText(), dto.getText());
+            assertEquals(comment.getCreatedOn(), dto.getCreatedOn());
+            assertEquals(comment.getUpdatedOn(), dto.getUpdatedOn());
+            assertEquals(comment.isEdited(), dto.getIsEdited());
+            assertEquals(comment.isDeleted(), dto.getIsDeleted()); // Проверяем isDeleted
+
+            assertNotNull(dto.getAuthor());
+            assertEquals(authorModel.getId(), dto.getAuthor().getId());
+
+            assertNotNull(dto.getEventId());
+            assertEquals(eventModel.getId(), dto.getEventId());
+        }
+
+        @Test
+        @DisplayName("Должен корректно маппить isDeleted=false")
+        void toAdminDto_withIsDeletedFalse_shouldMapCorrectly() {
+            User authorModel = User.builder().id(1L).name("Admin Test Author").build();
+            Event eventModel = Event.builder().id(1L).build();
+
+            Comment comment = Comment.builder()
+                .id(2L)
+                .text("Not deleted comment")
+                .author(authorModel)
+                .event(eventModel)
+                .isDeleted(false)
+                .build();
+
+            CommentAdminDto dto = commentMapper.toAdminDto(comment);
+
+            assertNotNull(dto);
+            assertEquals(false, dto.getIsDeleted());
         }
     }
 }
