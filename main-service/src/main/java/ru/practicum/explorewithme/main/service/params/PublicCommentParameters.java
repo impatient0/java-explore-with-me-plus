@@ -1,15 +1,14 @@
 package ru.practicum.explorewithme.main.service.params;
 
 import lombok.*;
-
-import java.util.List;
+import org.springframework.data.domain.Sort;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 @EqualsAndHashCode
 @AllArgsConstructor
-public class GetListUsersParameters {
-    private final List<Long> ids;
+public class PublicCommentParameters {
     private final int from;
     private final int size;
+    private final Sort sort;
 }
