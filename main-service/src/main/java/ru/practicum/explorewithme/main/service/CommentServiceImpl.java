@@ -2,7 +2,6 @@ package ru.practicum.explorewithme.main.service;
 
 import com.querydsl.core.BooleanBuilder;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -29,10 +28,6 @@ import ru.practicum.explorewithme.main.repository.EventRepository;
 import ru.practicum.explorewithme.main.repository.UserRepository;
 import ru.practicum.explorewithme.main.service.params.AdminCommentSearchParams;
 import ru.practicum.explorewithme.main.service.params.PublicCommentParameters;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
