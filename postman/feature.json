@@ -638,6 +638,174 @@
 								}
 							},
 							"response": []
+						},
+						{
+							"name": "Добавление комментария – Пустой текст – 400",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const randomSuffix = Math.floor(Math.random() * 100000);\r",
+											"const baseUrl = pm.collectionVariables.get(\"baseUrl\");\r",
+											"\r",
+											"function getFormattedFutureDate(hoursToAdd) {\r",
+											"    const date = new Date();\r",
+											"    date.setHours(date.getHours() + hoursToAdd);\r",
+											"    const year = date.getFullYear();\r",
+											"    const month = String(date.getMonth() + 1).padStart(2, '0');\r",
+											"    const day = String(date.getDate()).padStart(2, '0');\r",
+											"    const hours = String(date.getHours()).padStart(2, '0');\r",
+											"    const minutes = String(date.getMinutes()).padStart(2, '0');\r",
+											"    const seconds = String(date.getSeconds()).padStart(2, '0');\r",
+											"    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;\r",
+											"}\r",
+											"\r",
+											"let createdUserIdInternal, createdEventIdInternal;\r",
+											"\r",
+											"pm.sendRequest({\r",
+											"    url: `${baseUrl}/admin/users`, method: 'POST', header: {'Content-Type': 'application/json'},\r",
+											"    body: { mode: 'raw', raw: JSON.stringify({\r",
+											"        email: `testuser_empty_comm_text_${randomSuffix}@example.com`,\r",
+											"        name: `TestUser EmptyCommText ${randomSuffix}`\r",
+											"    })}\r",
+											"}, (errUser, responseUser) => {\r",
+											"    if (errUser || responseUser.code !== 201) {\r",
+											"        console.error(\"Pre-request: Не удалось создать пользователя:\", errUser || responseUser.text());\r",
+											"        throw new Error(\"Pre-request: Не удалось создать пользователя.\");\r",
+											"    }\r",
+											"    const userData = responseUser.json();\r",
+											"    createdUserIdInternal = userData.id;\r",
+											"    pm.environment.set(\"createdUserId\", createdUserIdInternal);\r",
+											"    console.log(\"Pre-request: Пользователь создан:\", createdUserIdInternal);\r",
+											"\r",
+											"    pm.sendRequest({\r",
+											"        url: `${baseUrl}/admin/categories`,\r",
+											"        method: 'POST',\r",
+											"        header: {'Content-Type': 'application/json'},\r",
+											"        body: { mode: 'raw', raw: JSON.stringify({ name: `Category EmptyCommText ${randomSuffix}` }) }\r",
+											"     }, (errCat, responseCat) => {\r",
+											"        if (errCat || responseCat.code !== 201) {\r",
+											"            console.error(\"Pre-request: Не удалось создать категорию:\", errCat || responseCat.text());\r",
+											"            throw new Error(\"Pre-request: Не удалось создать категорию.\");\r",
+											"        }\r",
+											"        const categoryData = responseCat.json();\r",
+											"        console.log(\"Pre-request: Категория создана:\", categoryData.id);\r",
+											"\r",
+											"        pm.sendRequest({\r",
+											"            url: `${baseUrl}/users/${createdUserIdInternal}/events`,\r",
+											"            method: 'POST',\r",
+											"            header: {'Content-Type': 'application/json'},\r",
+											"            body: { mode: 'raw', raw: JSON.stringify({\r",
+											"                title: `Event EmptyCommText ${randomSuffix}`,\r",
+											"                annotation: `Annotation with sufficient length ${randomSuffix}`, category: categoryData.id, description: `Description with sufficient length ${randomSuffix}`,\r",
+											"                eventDate: getFormattedFutureDate(3), location: { lat: 55.74, lon: 37.64 }, commentsEnabled: true\r",
+											"            })}\r",
+											"        }, (errEvent, responseEvent) => {\r",
+											"            if (errEvent || responseEvent.code !== 201) {\r",
+											"                console.error(\"Pre-request: Не удалось создать событие:\", errEvent || responseEvent.text());\r",
+											"                throw new Error(\"Pre-request: Не удалось создать событие.\");\r",
+											"            }\r",
+											"            const eventData = responseEvent.json();\r",
+											"            createdEventIdInternal = eventData.id;\r",
+											"            pm.environment.set(\"createdEventId\", createdEventIdInternal);\r",
+											"            console.log(\"Pre-request: Событие создано:\", createdEventIdInternal);\r",
+											"\r",
+											"            pm.sendRequest({\r",
+											"                url: `${baseUrl}/admin/events/${createdEventIdInternal}`, method: 'PATCH',\r",
+											"                header: {'Content-Type': 'application/json'}, body: { mode: 'raw', raw: JSON.stringify({ stateAction: \"PUBLISH_EVENT\" })}\r",
+											"            }, (errPublish, responsePublish) => {\r",
+											"                if (errPublish || responsePublish.code !== 200) {\r",
+											"                    console.error(\"Pre-request: Не удалось опубликовать событие:\", errPublish || responsePublish.text());\r",
+											"                    throw new Error(\"Pre-request: Не удалось опубликовать событие.\");\r",
+											"                }\r",
+											"                console.log(\"Pre-request: Событие опубликовано:\", createdEventIdInternal);\r",
+											"                console.log(\"Pre-request: Настройка для POST комментария с пустым текстом завершена.\");\r",
+											"            });\r",
+											"        });\r",
+											"    });\r",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Код статуса ответа 400 Bad Request\", function () {\r",
+											"    pm.response.to.have.status(400);\r",
+											"});\r",
+											"\r",
+											"pm.test(\"Ответ является валидным JSON (для ApiError)\", function () {\r",
+											"    pm.response.to.be.json;\r",
+											"});\r",
+											"\r",
+											"const jsonData = pm.response.json();\r",
+											"\r",
+											"pm.test(\"Тело ответа содержит ожидаемые поля ошибки ApiError (без 'errors')\", function () {\r",
+											"    pm.expect(jsonData).to.be.an('object');\r",
+											"    pm.expect(jsonData).to.have.all.keys('status', 'reason', 'message', 'timestamp', 'errors');\r",
+											"    pm.expect(jsonData.status).to.equal(\"BAD_REQUEST\");\r",
+											"});\r",
+											"\r",
+											"pm.test(\"Сообщение об ошибке (message) не пустое и указывает на проблему с полем 'text'\", function () {\r",
+											"    pm.expect(jsonData.message).to.not.be.empty;\r",
+											"    console.log(\"Сообщение об ошибке: \", jsonData.message);\r",
+											"});\r",
+											"\r",
+											"pm.test(\"Поле 'reason' (причина ошибки) не пустое\", function () {\r",
+											"    pm.expect(jsonData.reason).to.not.be.empty;\r",
+											"    console.log(\"Причина ошибки: \", jsonData.reason);\r",
+											"});\r",
+											"\r",
+											"pm.test(\"Timestamp ошибки присутствует и в правильном формате\", function () {\r",
+											"    pm.expect(jsonData.timestamp).to.be.a('string');\r",
+											"    pm.expect(jsonData.timestamp).to.match(/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$/);\r",
+											"});\r",
+											"\r",
+											"pm.test(\"Очистка переменных окружения после теста\", function () {\r",
+											"    pm.environment.unset(\"createdUserId\");\r",
+											"    pm.environment.unset(\"createdEventId\");\r",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"text\": \"\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/users/{{createdUserId}}/comments?eventId={{createdEventId}}",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"users",
+										"{{createdUserId}}",
+										"comments"
+									],
+									"query": [
+										{
+											"key": "eventId",
+											"value": "{{createdEventId}}"
+										}
+									]
+								}
+							},
+							"response": []
 						}
 					]
 				},
@@ -2647,6 +2815,167 @@
 										"events",
 										"{{unpublishedEventId}}",
 										"comments"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Получение комментариев к событию – size=0 – 400",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"const randomSuffix = Math.floor(Math.random() * 100000);\r",
+											"const baseUrl = pm.collectionVariables.get(\"baseUrl\") || \"http://localhost:8080\";\r",
+											"\r",
+											"function getFormattedFutureDate(hoursToAdd) {\r",
+											"    const date = new Date();\r",
+											"    date.setHours(date.getHours() + hoursToAdd);\r",
+											"    const year = date.getFullYear();\r",
+											"    const month = String(date.getMonth() + 1).padStart(2, '0');\r",
+											"    const day = String(date.getDate()).padStart(2, '0');\r",
+											"    const hours = String(date.getHours()).padStart(2, '0');\r",
+											"    const minutes = String(date.getMinutes()).padStart(2, '0');\r",
+											"    const seconds = String(date.getSeconds()).padStart(2, '0');\r",
+											"    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;\r",
+											"}\r",
+											"\r",
+											"let eventCreatorUserId, createdEventIdInternal;\r",
+											"\r",
+											"pm.sendRequest({\r",
+											"    url: `${baseUrl}/admin/users`, method: 'POST', header: {'Content-Type': 'application/json'},\r",
+											"    body: { mode: 'raw', raw: JSON.stringify({\r",
+											"        email: `testuser_evt_comm_size0_${randomSuffix}@example.com`,\r",
+											"        name: `TestUser EvtCommSize0 ${randomSuffix}`\r",
+											"    })}\r",
+											"}, (errUser, responseUser) => {\r",
+											"    if (errUser || responseUser.code !== 201) {\r",
+											"        console.error(\"Pre-request: Не удалось создать пользователя:\", errUser || responseUser.text());\r",
+											"        throw new Error(\"Pre-request: Не удалось создать пользователя.\");\r",
+											"    }\r",
+											"    const userData = responseUser.json();\r",
+											"    eventCreatorUserId = userData.id;\r",
+											"    console.log(\"Pre-request: Пользователь создан:\", eventCreatorUserId);\r",
+											"\r",
+											"    pm.sendRequest({\r",
+											"        url: `${baseUrl}/admin/categories`,\r",
+											"        method: 'POST',\r",
+											"        header: {'Content-Type': 'application/json'},\r",
+											"        body: { mode: 'raw', raw: JSON.stringify({ name: `Category EvtCommSize0 ${randomSuffix}` }) }\r",
+											"     }, (errCat, responseCat) => {\r",
+											"        if (errCat || responseCat.code !== 201) {\r",
+											"            console.error(\"Pre-request: Не удалось создать категорию:\", errCat || responseCat.text());\r",
+											"            throw new Error(\"Pre-request: Не удалось создать категорию.\");\r",
+											"        }\r",
+											"        const categoryData = responseCat.json();\r",
+											"        console.log(\"Pre-request: Категория создана:\", categoryData.id);\r",
+											"\r",
+											"        pm.sendRequest({\r",
+											"            url: `${baseUrl}/users/${eventCreatorUserId}/events`,\r",
+											"            method: 'POST',\r",
+											"            header: {'Content-Type': 'application/json'},\r",
+											"            body: { mode: 'raw', raw: JSON.stringify({\r",
+											"                title: `Event EvtCommSize0 ${randomSuffix}`,\r",
+											"                annotation: `Annotation with sufficient length ${randomSuffix}`, category: categoryData.id, description: `Description with sufficient length ${randomSuffix}`,\r",
+											"                eventDate: getFormattedFutureDate(3), location: { lat: 55.75, lon: 37.65 }, commentsEnabled: true\r",
+											"            })}\r",
+											"        }, (errEvent, responseEvent) => {\r",
+											"            if (errEvent || responseEvent.code !== 201) {\r",
+											"                console.error(\"Pre-request: Не удалось создать событие:\", errEvent || responseEvent.text());\r",
+											"                throw new Error(\"Pre-request: Не удалось создать событие.\");\r",
+											"            }\r",
+											"            const eventData = responseEvent.json();\r",
+											"            createdEventIdInternal = eventData.id;\r",
+											"            pm.environment.set(\"createdEventId\", createdEventIdInternal);\r",
+											"            console.log(\"Pre-request: Событие создано:\", createdEventIdInternal);\r",
+											"\r",
+											"            pm.sendRequest({\r",
+											"                url: `${baseUrl}/admin/events/${createdEventIdInternal}`, method: 'PATCH',\r",
+											"                header: {'Content-Type': 'application/json'}, body: { mode: 'raw', raw: JSON.stringify({ stateAction: \"PUBLISH_EVENT\" })}\r",
+											"            }, (errPublish, responsePublish) => {\r",
+											"                if (errPublish || responsePublish.code !== 200) {\r",
+											"                    console.error(\"Pre-request: Не удалось опубликовать событие:\", errPublish || responsePublish.text());\r",
+											"                    throw new Error(\"Pre-request: Не удалось опубликовать событие.\");\r",
+											"                }\r",
+											"                console.log(\"Pre-request: Событие опубликовано:\", createdEventIdInternal);\r",
+											"                console.log(\"Pre-request: Настройка для GET комментариев события с size=0 завершена.\");\r",
+											"            });\r",
+											"        });\r",
+											"    });\r",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Код статуса ответа 400 Bad Request\", function () {\r",
+											"    pm.response.to.have.status(400);\r",
+											"});\r",
+											"\r",
+											"pm.test(\"Ответ является валидным JSON (для ApiError)\", function () {\r",
+											"    pm.response.to.be.json;\r",
+											"});\r",
+											"\r",
+											"const jsonData = pm.response.json();\r",
+											"\r",
+											"pm.test(\"Тело ответа содержит ожидаемые поля ошибки ApiError (без 'errors')\", function () {\r",
+											"    pm.expect(jsonData).to.be.an('object');\r",
+											"    pm.expect(jsonData).to.have.all.keys('status', 'reason', 'message', 'timestamp', 'errors');\r",
+											"    pm.expect(jsonData.status).to.equal(\"BAD_REQUEST\");\r",
+											"});\r",
+											"\r",
+											"pm.test(\"Сообщение об ошибке (message) не пустое и указывает на проблему с параметром 'size'\", function () {\r",
+											"    pm.expect(jsonData.message).to.not.be.empty;\r",
+											"    console.log(\"Сообщение об ошибке: \", jsonData.message);\r",
+											"});\r",
+											"\r",
+											"pm.test(\"Поле 'reason' (причина ошибки) не пустое\", function () {\r",
+											"    pm.expect(jsonData.reason).to.not.be.empty;\r",
+											"    console.log(\"Причина ошибки: \", jsonData.reason);\r",
+											"});\r",
+											"\r",
+											"pm.test(\"Timestamp ошибки присутствует и в правильном формате\", function () {\r",
+											"    pm.expect(jsonData.timestamp).to.be.a('string');\r",
+											"    pm.expect(jsonData.timestamp).to.match(/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$/);\r",
+											"});\r",
+											"\r",
+											"pm.test(\"Очистка переменных окружения после теста\", function () {\r",
+											"    pm.environment.unset(\"createdEventId\");\r",
+											"});"
+										],
+										"type": "text/javascript",
+										"packages": {}
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/events/{{createdEventId}}/comments?from=0&size=0",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"events",
+										"{{createdEventId}}",
+										"comments"
+									],
+									"query": [
+										{
+											"key": "from",
+											"value": "0"
+										},
+										{
+											"key": "size",
+											"value": "0"
+										}
 									]
 								}
 							},
